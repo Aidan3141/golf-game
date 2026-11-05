@@ -52,7 +52,7 @@ extension SwingResult {
         handedness: .right,
         backswingDuration: 0.75,
         downswingDuration: 0.27,
-        peakWristAngularVelocity: 22,
+        peakWristAngularVelocity: 19,  // typical real swing (16-21 on nov 5)
         peakAcceleration: 9,
         smoothnessScore: 0.7,
         pathBias: -0.2,

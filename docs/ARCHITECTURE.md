@@ -59,7 +59,8 @@ coords in swingkit: x right of target, y up, z downrange (meters). vision app ma
 - `faceAngle` = forearm roll at impact vs address (watch x axis w/ the swing axis projected out), degrees. avp maps it to pathBias: roll / 15deg x strength, w/ a flip toggle bc we dont know yet which sign is open
 - smoothness = backswing jitter (raw vs 80ms avg) / hump speed. pathBias is 0 for now, no reliable signal yet
 
-coming: coaching tips (M6)
+- `Coach.tip(for:flight:)` one plain english tip per shot, worst problem first: tempo (outside 2.6-3.4) > jerky takeaway > slice/hook (>12 yd offline, by hand) > low speed > pure/solid
+- `SessionStats` avg tempo, tempo std dev (+ words for it), avg/best carry, avg smoothness
 
 ## vision pro app
 
@@ -84,6 +85,12 @@ debug launch args (Debug builds only): iphone `-autoTestSwing` sends a sample on
 - `PhoneConnectivity` gets files, moves them into Documents/Recordings before the delegate returns
 - `RecordingStore` lists/loads/deletes them
 - `RecordingDetailView` swift charts of accel + rotation (magnitude or x/y/z), reruns the detector and draws takeaway/top/impact lines + tempo, share button so recordings can be airdropped to the mac
+
+## coaching (M6)
+
+- avp: `ShotCard` attachment pops up ~0.3s after the ball lands, on ur trail side so it doesnt block the flight. carry/total, tempo vs 3:1 bar, smoothness, curve, tip. window has a session summary + new session button
+- iphone: every real swing saved w/ swiftdata (`SwingRecord`, flat fields). `HistoryView` = tempo over time chart w/ the 3:1 line, stats, per day list. carry there is a straight shot estimate (phone doesnt know the avp curve calibration)
+- debug: iphone `-seedHistory` fake swings, `-openHistory` starts on history
 
 ## 3d content
 

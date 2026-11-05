@@ -10,7 +10,7 @@ public struct FlightTuning: Sendable, Hashable {
     public var ballRadius = 0.02135  // m
 
     // swing -> launch
-    public var speedPerWristRadPerSec = 2.35  // ball m/s per rad/s of wrist speed
+    public var speedPerWristRadPerSec = 2.72  // ball m/s per rad/s. tuned so my real ~19 rad/s swing carries ~160 yd
     public var minBallSpeed = 12.0  // m/s
     public var maxBallSpeed = 75.0  // m/s
     public var launchAngleDegrees = 18.0  // ~7 iron

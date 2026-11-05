@@ -6,7 +6,7 @@ struct TestSwingSettings: Equatable {
     var handedness = Handedness.right
     var backswing = 0.75  // s
     var downswing = 0.25  // s
-    var wristSpeed = 22.0  // rad/s
+    var wristSpeed = 19.0  // rad/s, my real swings are ~16-21
     var smoothness = 0.8
     var pathBias = 0.0
 

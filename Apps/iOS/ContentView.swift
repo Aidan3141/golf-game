@@ -23,6 +23,14 @@ struct ContentView: View {
                     Text("keep this app open while u play, it relays watch swings to the headset")
                 }
 
+                Section {
+                    NavigationLink {
+                        HistoryView()
+                    } label: {
+                        Label("Swing History", systemImage: "chart.xyaxis.line")
+                    }
+                }
+
                 if !feed.entries.isEmpty {
                     Section("live swings") {
                         ForEach(feed.entries) { e in
