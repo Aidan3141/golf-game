@@ -24,6 +24,7 @@ packages:
 targets:
   # vision pro app
   GolfGame:
+    scheme: {}  # shared scheme so it survives regen
     type: application
     platform: visionOS
     sources: [Apps/VisionOS]
@@ -44,6 +45,7 @@ targets:
 
   # iphone relay app, embeds the watch app
   GolfGame iPhone:
+    scheme: {}  # shared scheme so it survives regen
     type: application
     platform: iOS
     sources: [Apps/iOS]
@@ -55,6 +57,8 @@ targets:
         PRODUCT_NAME: GolfGamePhone
         PRODUCT_BUNDLE_IDENTIFIER: com.aidanbulovic.golfgame.phone
         TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO  # iphone only, no mac/avp compat builds
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
     info:
       path: Apps/iOS/Info.plist
       properties:
@@ -66,6 +70,7 @@ targets:
 
   # watch app, swing capture lives here later
   GolfGame Watch:
+    scheme: {}  # shared scheme so it survives regen
     type: application
     platform: watchOS
     sources: [Apps/Watch]
