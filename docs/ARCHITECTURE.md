@@ -63,6 +63,18 @@ coming: swing detector (M4), coaching tips (M6)
 
 debug launch args (Debug builds only): `-autoShot` opens range + hits, `-hideWindow` closes the panel after, `-sideView` turns the world so the sim camera sees the arc, `-clubView` face-on look at the club
 
+## watch app (M3)
+
+- `WorkoutManager` runs an `HKWorkoutSession` (golf). only to keep the app alive + unlock batched sensors, no builder so nothing saved to health
+- `MotionCapture` streams `CMBatchedSensorManager` accel + device motion into ring buffers (~10s). falls back to `CMMotionManager` @ 100hz if batched isnt supported. record = 3-2-1 haptic countdown, 3s window, waits for the ~1s batch lag, slices by timestamp (secs since boot)
+- `WatchConnectivityManager` writes `SwingRecording` json + `transferFile`s it to the phone
+
+## iphone app (M3)
+
+- `PhoneConnectivity` gets files, moves them into Documents/Recordings before the delegate returns
+- `RecordingStore` lists/loads/deletes them
+- `RecordingDetailView` swift charts of accel + rotation (magnitude or x/y/z) + share button so recordings can be airdropped to the mac
+
 ## 3d content
 
 xcode 27 visionOS template no longer makes a reality composer pro package, so the range is built in code from primitives + textures in `Apps/VisionOS/Resources`. see `ASSETS.md`
