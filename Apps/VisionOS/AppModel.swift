@@ -8,6 +8,7 @@ struct Shot: Identifiable, Equatable {
     let swing: SwingResult
     let flight: FlightResult
     let live: Bool  // real swing from the watch, ball goes right away (no club replay)
+    let tip: CoachingTip
 }
 
 @MainActor
@@ -36,6 +37,18 @@ final class AppModel {
     var testSwing = TestSwingSettings()
     var tuning = FlightTuning.standard
     private(set) var lastShot: Shot?
+    private(set) var session: [Shot] = []
+    var cardShot: Shot?  // shot card in the range, set once the ball lands
+
+    var stats: SessionStats {
+        SessionStats(swings: session.map(\.swing), flights: session.map(\.flight))
+    }
+    var bestShot: Shot? { session.max { $0.flight.carry < $1.flight.carry } }
+
+    func newSession() {
+        session.removeAll()
+        cardShot = nil
+    }
 
     // sliders feed the mock, real swings come in over the network from the phone
     let mockSource = MockSwingSource()
@@ -65,7 +78,10 @@ final class AppModel {
         if let face = swing.faceAngle {
             swing = swing.with(pathBias: pathBias(forFace: face))
         }
-        lastShot = Shot(swing: swing, flight: FlightSimulator.simulate(swing: swing, tuning: tuning), live: live)
+        let flight = FlightSimulator.simulate(swing: swing, tuning: tuning)
+        let shot = Shot(swing: swing, flight: flight, live: live, tip: Coach.tip(for: swing, flight: flight))
+        lastShot = shot
+        session.append(shot)
     }
 
     func pathBias(forFace face: Double) -> Double {

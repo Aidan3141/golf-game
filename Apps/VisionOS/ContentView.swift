@@ -69,8 +69,28 @@ struct ContentView: View {
                     }
                 }
 
+                if !appModel.session.isEmpty {
+                    let st = appModel.stats
+                    Section {
+                        LabeledContent("Shots", value: "\(st.shots)")
+                        LabeledContent("Avg tempo", value: String(format: "%.1f : 1", st.averageTempo))
+                        LabeledContent("Consistency", value: String(format: "%@ (±%.1f)", st.consistencyLabel, st.tempoSpread))
+                        LabeledContent("Avg carry", value: yards(st.averageCarry))
+                        if let best = appModel.bestShot {
+                            LabeledContent("Best", value: String(format: "%@ · tempo %.1f", yards(best.flight.carry), best.swing.tempoRatio))
+                        }
+                        Button("New Session", systemImage: "arrow.counterclockwise") {
+                            appModel.newSession()
+                        }
+                    } header: {
+                        Text("session")
+                    }
+                }
+
                 if let shot = appModel.lastShot {
                     Section("last shot") {
+                        Text(shot.tip.title).font(.headline)
+                        Text(shot.tip.detail).foregroundStyle(.secondary)
                         LabeledContent("Carry", value: yards(shot.flight.carry))
                         LabeledContent("Total", value: yards(shot.flight.total))
                         LabeledContent("Offline", value: offline(shot.flight.offline))

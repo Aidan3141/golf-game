@@ -8,7 +8,7 @@ struct RangeView: View {
     @State private var playedShotID: UUID?
 
     var body: some View {
-        RealityView { content in
+        RealityView { content, attachments in
             let s = await RangeScene()
             content.add(s.root)
             scene = s
@@ -31,8 +31,24 @@ struct RangeView: View {
             }
             #endif
             // shot may have come in while scene was loading
+            if let card = attachments.entity(for: "card") {
+                card.name = "card"
+                content.add(card)
+                placeCard(card)
+            }
             if let shot = appModel.lastShot {
                 play(shot, in: s)
+            }
+        } update: { content, _ in
+            if let card = content.entities.first(where: { $0.name == "card" }) {
+                placeCard(card)
+                card.isEnabled = appModel.cardShot != nil
+            }
+        } attachments: {
+            Attachment(id: "card") {
+                if let shot = appModel.cardShot {
+                    ShotCard(shot: shot)
+                }
             }
         }
         .onChange(of: appModel.viewMode) { _, mode in
@@ -47,9 +63,35 @@ struct RangeView: View {
         }
     }
 
+    // off to the side so it doesnt block the ball. world space, the range root moves but u dont
+    private func placeCard(_ card: Entity) {
+        switch appModel.viewMode {
+        case .firstPerson:
+            // ball flies to ur lead side, put the card on the other side
+            let side: Float = appModel.handedness == .right ? 1 : -1
+            card.position = [0.6 * side, 1.35, -1.0]
+            card.orientation = simd_quatf(angle: -0.5 * side, axis: [0, 1, 0])
+        case .behind:
+            card.position = [1.0, 1.3, -1.6]
+            card.orientation = simd_quatf(angle: -0.4, axis: [0, 1, 0])
+        }
+    }
+
+    // card shows up when the ball lands
+    private func showCard(for shot: Shot, after secs: Double) {
+        appModel.cardShot = nil
+        Task {
+            try? await Task.sleep(for: .seconds(secs))
+            if appModel.lastShot?.id == shot.id {
+                appModel.cardShot = shot
+            }
+        }
+    }
+
     private func play(_ shot: Shot, in scene: RangeScene) {
         guard shot.id != playedShotID else { return }
         playedShotID = shot.id
+        let landing = shot.flight.points[shot.flight.landingIndex].time + 0.3
         scene.clearEffects()
         scene.resetBall()
         if shot.swing.handedness != appModel.handedness {
@@ -58,12 +100,13 @@ struct RangeView: View {
         // live swing w/ the club streaming -> u already swung it, just launch
         if shot.live && appModel.liveClub.isFresh {
             scene.ball.components.set(BallFlightComponent(flight: shot.flight, effects: scene.effects))
+            showCard(for: shot, after: landing)
             return
         }
         // otherwise club swings first, ClubSwingSystem launches the ball at impact
         scene.club.setPath(shot.swing.pathBias, hand: shot.swing.handedness)
-        scene.club.root.components.set(
-            ClubSwingComponent(shot: shot, ball: scene.ball, effects: scene.effects, rig: scene.club)
-        )
+        let swing = ClubSwingComponent(shot: shot, ball: scene.ball, effects: scene.effects, rig: scene.club)
+        scene.club.root.components.set(swing)
+        showCard(for: shot, after: Double(max(swing.impactTime - swing.elapsed, 0)) + landing)
     }
 }
