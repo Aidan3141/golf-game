@@ -9,9 +9,48 @@ struct RecordingDetailView: View {
 
     private var rec: SwingRecording { item.recording }
 
+    // rerun the detector on the saved data so we can see where it put the phases
+    private var detected: (SwingResult, SwingTimeline)? {
+        var d = SwingDetector(handedness: rec.handedness)
+        d.add(accel: rec.accel)
+        for e in d.add(motion: rec.motion) {
+            if case .impact(let r, let t) = e { return (r, t) }
+        }
+        return nil
+    }
+
+    @ChartContentBuilder
+    private func phaseLines(_ t: SwingTimeline?) -> some ChartContent {
+        if let t {
+            if let a = t.takeaway {
+                RuleMark(x: .value("takeaway", a))
+                    .foregroundStyle(.green)
+                    .annotation(position: .top, alignment: .leading) { Text("take").font(.caption2) }
+            }
+            RuleMark(x: .value("top", t.top))
+                .foregroundStyle(.yellow)
+                .annotation(position: .top, alignment: .leading) { Text("top").font(.caption2) }
+            RuleMark(x: .value("impact", t.impact))
+                .foregroundStyle(.red)
+                .annotation(position: .top, alignment: .leading) { Text("impact").font(.caption2) }
+        }
+    }
+
     var body: some View {
+        let det = detected
         List {
-            Section {
+            Section("detector") {
+                if let (r, _) = det {
+                    LabeledContent("Tempo", value: String(format: "%.2f : 1", r.tempoRatio))
+                    LabeledContent("Back / down", value: String(format: "%.2fs / %.2fs", r.backswingDuration, r.downswingDuration))
+                    LabeledContent("Smoothness", value: String(format: "%.0f%%", r.smoothnessScore * 100))
+                    LabeledContent("Confidence", value: String(format: "%.0f%%", r.confidence * 100))
+                } else {
+                    Text("no swing found").foregroundStyle(.secondary)
+                }
+                if let note = rec.note {
+                    LabeledContent("Note", value: note)
+                }
                 Toggle("Show x/y/z", isOn: $showAxes)
             }
 
@@ -27,6 +66,7 @@ struct RecordingDetailView: View {
                             LineMark(x: .value("t", a.t), y: .value("g", a.magnitude))
                         }
                     }
+                    phaseLines(det?.1)
                 }
                 .chartXAxisLabel("secs")
                 .frame(height: 220)
@@ -45,6 +85,7 @@ struct RecordingDetailView: View {
                         }
                         .foregroundStyle(.orange)
                     }
+                    phaseLines(det?.1)
                 }
                 .chartXAxisLabel("secs")
                 .frame(height: 220)

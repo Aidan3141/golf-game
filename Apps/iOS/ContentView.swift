@@ -59,6 +59,9 @@ private struct RecordingRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(recording.startedAt, format: .dateTime.month().day().hour().minute().second())
+            if let note = recording.note {
+                Text(note).font(.caption).foregroundStyle(.secondary)
+            }
             Text("\(Int(recording.measuredAccelHz.rounded())) Hz accel · \(Int(recording.measuredMotionHz.rounded())) Hz motion · \(recording.source)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
