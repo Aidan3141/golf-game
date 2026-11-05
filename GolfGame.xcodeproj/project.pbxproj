@@ -1,0 +1,600 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0809D0CA4E1B4540D69A5DC9 /* RangeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D56BF70B404880C37CB9CE3 /* RangeView.swift */; };
+		1A0AA9DA830B235CD8637A16 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D651FAC98A7B599BF438465E /* ContentView.swift */; };
+		1F9FC25B9B0668A884F3DF15 /* SwingKit in Frameworks */ = {isa = PBXBuildFile; productRef = 773D70B0D6CFA15F475B0BEC /* SwingKit */; };
+		26DA5D955590E82DFF10B0C1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3399F17955A487373B2E275B /* ContentView.swift */; };
+		4A8BBBD309077C9E4EC26309 /* GolfGame Watch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 2CC4CACE9F42E379F574F0B3 /* GolfGame Watch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4CB92CD1A7A10A79805A6A6D /* SwingKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5B39E18C1256D07B652E0CA2 /* SwingKit */; };
+		A3BBBCA9D0631A6F6BE8A093 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13CEE87EB5BEA1FEB10D8093 /* ContentView.swift */; };
+		C5006A4A7949C080B70BB105 /* SwingKit in Frameworks */ = {isa = PBXBuildFile; productRef = 2AEF2EC7229ECC5C68367776 /* SwingKit */; };
+		C66F3CFE3B3C66C81ADAEEFC /* GolfGamePhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2790370EF5839C892C8E2E0B /* GolfGamePhoneApp.swift */; };
+		C902CB6874DD5723F1079187 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8653E96DDEF669EE82BEF30 /* AppModel.swift */; };
+		E4ACCE2CF59ABD69D958E50A /* GolfGameWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4A862265B0A879407F5016 /* GolfGameWatchApp.swift */; };
+		ECF99E922A9BF3C49805B974 /* GolfGameApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38A47DF3B0DBC6FF1024DE70 /* GolfGameApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5605C953071B474E76F406AE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C5742BED037560F44407505A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 30E8BC67ADDBC26ADD102DFB;
+			remoteInfo = "GolfGame Watch";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		7F3707BACAB50064D52F3556 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				4A8BBBD309077C9E4EC26309 /* GolfGame Watch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		13CEE87EB5BEA1FEB10D8093 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		1D950B8157E16302AD84F329 /* SwingKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SwingKit; path = Packages/SwingKit; sourceTree = SOURCE_ROOT; };
+		2544BB8B806178342FDA578F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		2790370EF5839C892C8E2E0B /* GolfGamePhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfGamePhoneApp.swift; sourceTree = "<group>"; };
+		2CC4CACE9F42E379F574F0B3 /* GolfGame Watch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "GolfGame Watch.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2E6A2348F74D7432FB82FC20 /* GolfGame.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GolfGame.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3399F17955A487373B2E275B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		38A47DF3B0DBC6FF1024DE70 /* GolfGameApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfGameApp.swift; sourceTree = "<group>"; };
+		634E8C72BAB5EE536CD4364C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		9D56BF70B404880C37CB9CE3 /* RangeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RangeView.swift; sourceTree = "<group>"; };
+		9E4A862265B0A879407F5016 /* GolfGameWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfGameWatchApp.swift; sourceTree = "<group>"; };
+		C8F4657D5DB94EDF33135033 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		D651FAC98A7B599BF438465E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		D857946D29229B37156D7E1B /* GolfGame iPhone.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "GolfGame iPhone.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D8653E96DDEF669EE82BEF30 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		48EFD9000C68BAE89AAC51F4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1F9FC25B9B0668A884F3DF15 /* SwingKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A464C065DA512C9178F454A1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C5006A4A7949C080B70BB105 /* SwingKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F8E5C87EBFBC8D3BD9BF14B3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4CB92CD1A7A10A79805A6A6D /* SwingKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4DA4FA104FA5434A21E31CEC /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				13CEE87EB5BEA1FEB10D8093 /* ContentView.swift */,
+				2790370EF5839C892C8E2E0B /* GolfGamePhoneApp.swift */,
+				C8F4657D5DB94EDF33135033 /* Info.plist */,
+			);
+			path = iOS;
+			sourceTree = "<group>";
+		};
+		4DF40D556FA2584F9F912D87 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D857946D29229B37156D7E1B /* GolfGame iPhone.app */,
+				2CC4CACE9F42E379F574F0B3 /* GolfGame Watch.app */,
+				2E6A2348F74D7432FB82FC20 /* GolfGame.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		969F71813E200C84FE72F51B /* Apps */ = {
+			isa = PBXGroup;
+			children = (
+				4DA4FA104FA5434A21E31CEC /* iOS */,
+				FD7DB11FAB84BA2F57A57AA5 /* VisionOS */,
+				EB2718A2A8F2CDF5CCAC6439 /* Watch */,
+			);
+			path = Apps;
+			sourceTree = "<group>";
+		};
+		B37D031ABF42D47BE0AD100F = {
+			isa = PBXGroup;
+			children = (
+				969F71813E200C84FE72F51B /* Apps */,
+				D751F54A98D81800B4BB2FEF /* Packages */,
+				4DF40D556FA2584F9F912D87 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D751F54A98D81800B4BB2FEF /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				1D950B8157E16302AD84F329 /* SwingKit */,
+			);
+			path = Packages;
+			sourceTree = "<group>";
+		};
+		EB2718A2A8F2CDF5CCAC6439 /* Watch */ = {
+			isa = PBXGroup;
+			children = (
+				3399F17955A487373B2E275B /* ContentView.swift */,
+				9E4A862265B0A879407F5016 /* GolfGameWatchApp.swift */,
+				2544BB8B806178342FDA578F /* Info.plist */,
+			);
+			path = Watch;
+			sourceTree = "<group>";
+		};
+		FD7DB11FAB84BA2F57A57AA5 /* VisionOS */ = {
+			isa = PBXGroup;
+			children = (
+				D8653E96DDEF669EE82BEF30 /* AppModel.swift */,
+				D651FAC98A7B599BF438465E /* ContentView.swift */,
+				38A47DF3B0DBC6FF1024DE70 /* GolfGameApp.swift */,
+				634E8C72BAB5EE536CD4364C /* Info.plist */,
+				9D56BF70B404880C37CB9CE3 /* RangeView.swift */,
+			);
+			path = VisionOS;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		30E8BC67ADDBC26ADD102DFB /* GolfGame Watch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CE907563022171AE6B659839 /* Build configuration list for PBXNativeTarget "GolfGame Watch" */;
+			buildPhases = (
+				9D059AFA33A884EFAB76647E /* Sources */,
+				48EFD9000C68BAE89AAC51F4 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "GolfGame Watch";
+			packageProductDependencies = (
+				773D70B0D6CFA15F475B0BEC /* SwingKit */,
+			);
+			productName = "GolfGame Watch";
+			productReference = 2CC4CACE9F42E379F574F0B3 /* GolfGame Watch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A1D6D4706A81A3B610D06CD8 /* GolfGame iPhone */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 308DEEB039E0C5426846FC50 /* Build configuration list for PBXNativeTarget "GolfGame iPhone" */;
+			buildPhases = (
+				6378FF31930AA5A2C476265C /* Sources */,
+				F8E5C87EBFBC8D3BD9BF14B3 /* Frameworks */,
+				7F3707BACAB50064D52F3556 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E3760B3F6DBA064066F09564 /* PBXTargetDependency */,
+			);
+			name = "GolfGame iPhone";
+			packageProductDependencies = (
+				5B39E18C1256D07B652E0CA2 /* SwingKit */,
+			);
+			productName = "GolfGame iPhone";
+			productReference = D857946D29229B37156D7E1B /* GolfGame iPhone.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F8A159526F646A43C7390B65 /* GolfGame */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 65077BBDEE34A386B5531CFE /* Build configuration list for PBXNativeTarget "GolfGame" */;
+			buildPhases = (
+				A2DE7D424B848DB1A0D8A1DD /* Sources */,
+				A464C065DA512C9178F454A1 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GolfGame;
+			packageProductDependencies = (
+				2AEF2EC7229ECC5C68367776 /* SwingKit */,
+			);
+			productName = GolfGame;
+			productReference = 2E6A2348F74D7432FB82FC20 /* GolfGame.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C5742BED037560F44407505A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					30E8BC67ADDBC26ADD102DFB = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					A1D6D4706A81A3B610D06CD8 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					F8A159526F646A43C7390B65 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 3C9D6B22E1A2D502B7F069A4 /* Build configuration list for PBXProject "GolfGame" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = B37D031ABF42D47BE0AD100F;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				88017D55C2511248C5A10DF2 /* XCLocalSwiftPackageReference "Packages/SwingKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4DF40D556FA2584F9F912D87 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F8A159526F646A43C7390B65 /* GolfGame */,
+				A1D6D4706A81A3B610D06CD8 /* GolfGame iPhone */,
+				30E8BC67ADDBC26ADD102DFB /* GolfGame Watch */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		6378FF31930AA5A2C476265C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A3BBBCA9D0631A6F6BE8A093 /* ContentView.swift in Sources */,
+				C66F3CFE3B3C66C81ADAEEFC /* GolfGamePhoneApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D059AFA33A884EFAB76647E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				26DA5D955590E82DFF10B0C1 /* ContentView.swift in Sources */,
+				E4ACCE2CF59ABD69D958E50A /* GolfGameWatchApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A2DE7D424B848DB1A0D8A1DD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C902CB6874DD5723F1079187 /* AppModel.swift in Sources */,
+				1A0AA9DA830B235CD8637A16 /* ContentView.swift in Sources */,
+				ECF99E922A9BF3C49805B974 /* GolfGameApp.swift in Sources */,
+				0809D0CA4E1B4540D69A5DC9 /* RangeView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E3760B3F6DBA064066F09564 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 30E8BC67ADDBC26ADD102DFB /* GolfGame Watch */;
+			targetProxy = 5605C953071B474E76F406AE /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		183A4D5F9AE6D8526A8E3C53 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = Apps/Watch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aidanbulovic.golfgame.phone.watchkitapp;
+				PRODUCT_NAME = GolfGameWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+			};
+			name = Release;
+		};
+		1C7C6B1C1E79B022407432BC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				WATCHOS_DEPLOYMENT_TARGET = 27.0;
+				XROS_DEPLOYMENT_TARGET = 27.0;
+			};
+			name = Release;
+		};
+		3DCCDEA097587278AB2D6718 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = Apps/VisionOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.aidanbulovic.golfgame;
+				PRODUCT_NAME = GolfGame;
+				SDKROOT = xros;
+				TARGETED_DEVICE_FAMILY = 7;
+			};
+			name = Debug;
+		};
+		4C9E02F0EA0C1393F95EB5B5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				WATCHOS_DEPLOYMENT_TARGET = 27.0;
+				XROS_DEPLOYMENT_TARGET = 27.0;
+			};
+			name = Debug;
+		};
+		56342BCC00CF8657641A8DF1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = Apps/VisionOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.aidanbulovic.golfgame;
+				PRODUCT_NAME = GolfGame;
+				SDKROOT = xros;
+				TARGETED_DEVICE_FAMILY = 7;
+			};
+			name = Release;
+		};
+		7CF260BE2109B6C6C5A78CC4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = Apps/Watch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aidanbulovic.golfgame.phone.watchkitapp;
+				PRODUCT_NAME = GolfGameWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+			};
+			name = Debug;
+		};
+		B423EFFB20F8C480A7C3F5C0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Apps/iOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.aidanbulovic.golfgame.phone;
+				PRODUCT_NAME = GolfGamePhone;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		FF9DE7D7016A588776B35934 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Apps/iOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.aidanbulovic.golfgame.phone;
+				PRODUCT_NAME = GolfGamePhone;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		308DEEB039E0C5426846FC50 /* Build configuration list for PBXNativeTarget "GolfGame iPhone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B423EFFB20F8C480A7C3F5C0 /* Debug */,
+				FF9DE7D7016A588776B35934 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		3C9D6B22E1A2D502B7F069A4 /* Build configuration list for PBXProject "GolfGame" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C9E02F0EA0C1393F95EB5B5 /* Debug */,
+				1C7C6B1C1E79B022407432BC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		65077BBDEE34A386B5531CFE /* Build configuration list for PBXNativeTarget "GolfGame" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3DCCDEA097587278AB2D6718 /* Debug */,
+				56342BCC00CF8657641A8DF1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		CE907563022171AE6B659839 /* Build configuration list for PBXNativeTarget "GolfGame Watch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7CF260BE2109B6C6C5A78CC4 /* Debug */,
+				183A4D5F9AE6D8526A8E3C53 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		88017D55C2511248C5A10DF2 /* XCLocalSwiftPackageReference "Packages/SwingKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/SwingKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2AEF2EC7229ECC5C68367776 /* SwingKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SwingKit;
+		};
+		5B39E18C1256D07B652E0CA2 /* SwingKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SwingKit;
+		};
+		773D70B0D6CFA15F475B0BEC /* SwingKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SwingKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = C5742BED037560F44407505A /* Project object */;
+}

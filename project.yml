@@ -1,0 +1,83 @@
+# xcodegen spec. edit this, then run `xcodegen` to regen GolfGame.xcodeproj
+name: GolfGame
+options:
+  bundleIdPrefix: com.aidanbulovic
+  deploymentTarget:
+    iOS: "27.0"
+    visionOS: "27.0"
+    watchOS: "27.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""  # put team id here once signed into xcode
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+packages:
+  SwingKit:
+    path: Packages/SwingKit
+
+targets:
+  # vision pro app
+  GolfGame:
+    type: application
+    platform: visionOS
+    sources: [Apps/VisionOS]
+    dependencies:
+      - package: SwingKit
+    settings:
+      base:
+        PRODUCT_NAME: GolfGame
+        PRODUCT_BUNDLE_IDENTIFIER: com.aidanbulovic.golfgame
+    info:
+      path: Apps/VisionOS/Info.plist
+      properties:
+        CFBundleDisplayName: Golf Game
+        UIApplicationSceneManifest:
+          UIApplicationPreferredDefaultSceneSessionRole: UIWindowSceneSessionRoleApplication
+          UIApplicationSupportsMultipleScenes: true
+          UISceneConfigurations: {}
+
+  # iphone relay app, embeds the watch app
+  GolfGame iPhone:
+    type: application
+    platform: iOS
+    sources: [Apps/iOS]
+    dependencies:
+      - package: SwingKit
+      - target: GolfGame Watch
+    settings:
+      base:
+        PRODUCT_NAME: GolfGamePhone
+        PRODUCT_BUNDLE_IDENTIFIER: com.aidanbulovic.golfgame.phone
+        TARGETED_DEVICE_FAMILY: "1"
+    info:
+      path: Apps/iOS/Info.plist
+      properties:
+        CFBundleDisplayName: Golf Game
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+
+  # watch app, swing capture lives here later
+  GolfGame Watch:
+    type: application
+    platform: watchOS
+    sources: [Apps/Watch]
+    dependencies:
+      - package: SwingKit
+    settings:
+      base:
+        PRODUCT_NAME: GolfGameWatch
+        PRODUCT_BUNDLE_IDENTIFIER: com.aidanbulovic.golfgame.phone.watchkitapp
+    info:
+      path: Apps/Watch/Info.plist
+      properties:
+        CFBundleDisplayName: Golf Game
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: com.aidanbulovic.golfgame.phone
