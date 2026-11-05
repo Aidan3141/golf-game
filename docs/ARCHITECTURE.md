@@ -45,8 +45,23 @@ docs/                  this + assets list
 - `SwingPhase` detector states
 - `MessageEnvelope` versioned wrapper for everything on the wire (json, iso8601 dates). bump `currentVersion` on breaking changes
 
-coming: swing detector (M4), ball flight model + `FlightTuning` (M2), coaching tips (M6)
+- `FlightTuning` every flight knob in one struct (physics, swing->launch mapping, bounce/roll)
+- `LaunchConditions(swing:)` game-y mapping: wrist speed -> ball speed, tempo off 3:1 -> more curve, low smoothness -> less distance + seeded random spread, pathBias -> slice/hook
+- `FlightSimulator.simulate` steps gravity + drag + spin lift/curve at 240hz, then bounce + roll. returns points + carry/total/offline/apex. pure + deterministic so its unit tested
+
+coords in swingkit: x right of target, y up, z downrange (meters). vision app maps to realitykit w/ downrange = -z
+
+coming: swing detector (M4), coaching tips (M6)
+
+## vision pro app
+
+- `AppModel` holds range state, test swing sliders, last `Shot`. listens to a `SwingSource`
+- `SwingSource` protocol, `MockSwingSource` feeds swings from the sliders. real network source plugs in here in M5
+- `RangeScene` builds the range in code: sky sphere (8k jpg, inside out) + image based light from hdr, tinted grass w/ mowed stripes, tee box, staggered flags 50-250 yd w/ billboard labels
+- `BallFlightSystem` ecs system, plays a precomputed flight on the ball. grows the ball w/ distance so u can see it, drops trail segments, carry + rest markers
+
+debug launch args (Debug builds only): `-autoShot` opens range + hits, `-hideWindow` closes the panel after, `-sideView` turns the world so the sim camera sees the arc
 
 ## 3d content
 
-xcode 27 visionOS template no longer makes a reality composer pro package, scenes load from the app bundle. M1 range is just primitives in code. real scene + assets in M2/M7, see `ASSETS.md`
+xcode 27 visionOS template no longer makes a reality composer pro package, so the range is built in code from primitives + textures in `Apps/VisionOS/Resources`. see `ASSETS.md`
