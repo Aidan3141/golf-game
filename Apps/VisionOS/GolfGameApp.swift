@@ -12,6 +12,8 @@ struct GolfGameApp: App {
         ClubSwingSystem.registerSystem()
         LiveClubComponent.registerComponent()
         LiveClubSystem.registerSystem()
+        PuttRollComponent.registerComponent()
+        PuttRollSystem.registerSystem()
     }
 
     var body: some Scene {
@@ -28,5 +30,14 @@ struct GolfGameApp: App {
                 .onDisappear { appModel.rangeState = .closed }
         }
         .immersionStyle(selection: .constant(.full), in: .full)
+
+        // putting is mixed, green sits on ur real floor
+        ImmersiveSpace(id: AppModel.puttSpaceID) {
+            PuttingView()
+                .environment(appModel)
+                .onAppear { appModel.puttState = .open }
+                .onDisappear { appModel.puttState = .closed }
+        }
+        .immersionStyle(selection: .constant(.mixed), in: .mixed)
     }
 }

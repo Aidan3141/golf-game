@@ -12,6 +12,10 @@ final class NetworkSwingReceiver: SwingSource {
     private(set) var lastLatency: Double?  // phone send -> here, secs
 
     @ObservationIgnored var onClub: ((Double, SwingPhase) -> Void)?
+    // tell the phone (-> watch) what kind of swing to look for. resent on every new connection
+    @ObservationIgnored var mode = SwingMode.full {
+        didSet { if mode != oldValue { sendMode() } }
+    }
     private(set) var clubUpdates = 0  // only bumped every 25 msgs so the window doesnt redraw at 25hz
     @ObservationIgnored private var clubCount = 0
 
@@ -82,6 +86,7 @@ final class NetworkSwingReceiver: SwingSource {
                 case .ready:
                     self.state = .connected("iPhone")
                     self.receive(on: c)
+                    self.sendMode()
                 case .failed, .cancelled:
                     self.connection = nil
                     self.state = .searching
@@ -91,6 +96,11 @@ final class NetworkSwingReceiver: SwingSource {
             }
         }
         c.start(queue: .main)
+    }
+
+    private func sendMode() {
+        guard let connection, let data = try? MessageFramer.frame(MessageEnvelope(payload: .mode(mode))) else { return }
+        connection.send(content: data, completion: .idempotent)
     }
 
     private func receive(on c: NWConnection) {
@@ -124,7 +134,7 @@ final class NetworkSwingReceiver: SwingSource {
             clubCount &+= 1
             if clubCount % 25 == 1 { clubUpdates = clubCount }
             onClub?(angle, phase)
-        case .ping:
+        case .ping, .mode:
             break
         }
     }

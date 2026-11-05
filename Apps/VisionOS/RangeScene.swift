@@ -60,10 +60,9 @@ final class RangeScene {
             root.orientation = simd_quatf(angle: 0, axis: [0, 1, 0])
             root.position = .zero
         case .firstPerson:
-            let q = simd_quatf(angle: hand == .right ? .pi / 2 : -.pi / 2, axis: [0, 1, 0])
-            let p = q.act(club.root.position)
-            root.orientation = q
-            root.position = [-p.x, 0, -p.z]
+            let t = club.firstPersonTransform(hand: hand)
+            root.orientation = t.orientation
+            root.position = t.position
         }
     }
 

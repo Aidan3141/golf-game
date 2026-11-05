@@ -48,6 +48,17 @@ final class MotionCapture {
     @ObservationIgnored var onSwingData: ((SwingRecording) -> Void)?
     var saveSwingData = true
     var tempoTaps = false
+    // full swing or putting, avp sets this thru the phone (or the picker on the watch)
+    var mode = SwingMode.full {
+        didSet {
+            guard mode != oldValue else { return }
+            detector.config = mode == .putt ? .putting : .standard
+            detector.reset()
+            phase = .idle
+            lastSwing = nil
+            lastRejected = nil
+        }
+    }
     var tempoBackswing = 0.9  // s
     @ObservationIgnored private var tapTask: Task<Void, Never>?
 
@@ -138,7 +149,8 @@ final class MotionCapture {
             case .impact(let result, let timeline):
                 tapTask?.cancel()
                 // double tap = nice tempo, plain strong tap otherwise
-                device.play(Coach.tempoGood ~= result.tempoRatio ? .success : .notification)
+                let good = mode == .putt ? Coach.puttTempoGood : Coach.tempoGood
+                device.play(good ~= result.tempoRatio ? .success : .notification)
                 swingCount += 1
                 if result.confidence >= detector.config.minConfidenceToSend {
                     lastSwing = result
@@ -157,11 +169,14 @@ final class MotionCapture {
     // haptic metronome after address: tick tick tick (back), tap (impact) = 3:1
     private func playTempoTaps() {
         tapTask?.cancel()
-        let beat = tempoBackswing / 3
+        // full = 3 back 1 down (3:1), putt = 2 back 1 thru (2:1)
+        let beats = mode == .putt ? 2 : 3
+        let back = mode == .putt ? 0.6 : tempoBackswing
+        let beat = back / Double(beats)
         tapTask = Task {
             try? await Task.sleep(for: .seconds(0.6))
             let device = WKInterfaceDevice.current()
-            for _ in 0..<3 {
+            for _ in 0..<beats {
                 guard !Task.isCancelled else { return }
                 device.play(.click)
                 try? await Task.sleep(for: .seconds(beat))

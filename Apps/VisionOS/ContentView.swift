@@ -20,10 +20,39 @@ struct ContentView: View {
                 }
 
                 Section {
-                    Button(appModel.rangeState == .open ? "Leave Range" : "Go to Range") {
-                        Task { await toggleRange() }
+                    if appModel.rangeState == .closed && appModel.puttState == .closed {
+                        Button("Driving Range", systemImage: "figure.golf") {
+                            Task { await open(AppModel.rangeSpaceID) }
+                        }
+                        Button("Putting Green", systemImage: "flag.fill") {
+                            Task { await open(AppModel.puttSpaceID) }
+                        }
+                    } else {
+                        Button(appModel.mode == .putt ? "Leave Green" : "Leave Range", systemImage: "xmark") {
+                            Task { await dismissImmersiveSpace() }
+                        }
+                        Button(appModel.mode == .putt ? "Go to Range" : "Go to Putting Green", systemImage: "arrow.left.arrow.right") {
+                            Task { await open(appModel.mode == .putt ? AppModel.rangeSpaceID : AppModel.puttSpaceID) }
+                        }
                     }
-                    .disabled(appModel.rangeState == .opening)
+                }
+
+                if appModel.puttState == .open {
+                    Section("putting green") {
+                        LabeledContent("Hole", value: String(format: "%.0f ft, %@", appModel.puttSetup.distance * 3.28084, appModel.breakText))
+                        LabeledContent("Putts this hole", value: "\(appModel.puttsThisHole)")
+                        LabeledContent("Holes / putts", value: "\(appModel.holesPlayed) / \(appModel.totalPutts)")
+                        Button("New Hole", systemImage: "arrow.triangle.2.circlepath") { appModel.newHole() }
+                        SliderRow("Stroke speed", value: $appModel.testPuttSpeed, in: 0.5...7, format: "%.1f rad/s")
+                        SliderRow("Face", value: $appModel.testPuttFace, in: -6...6, format: "%+.1f°")
+                        Button("Hit Test Putt", systemImage: "circle.circle") {
+                            appModel.mockSource.send(appModel.testPutt)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        Text("putts on the watch need putting mode, the headset switches it for u")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 Section("settings") {
@@ -121,7 +150,7 @@ struct ContentView: View {
         }
         // real swing w/ range closed -> open it, RangeView plays the shot once loaded
         .onChange(of: appModel.lastShot) { _, shot in
-            if shot?.live == true && appModel.rangeState == .closed {
+            if shot?.live == true && appModel.rangeState == .closed && appModel.puttState == .closed {
                 Task { await toggleRange() }
             }
         }
@@ -130,9 +159,17 @@ struct ContentView: View {
         // `-openRange` just opens it
         .task {
             let args = ProcessInfo.processInfo.arguments
-            guard args.contains("-autoShot") || args.contains("-openRange") else { return }
+            guard args.contains("-autoShot") || args.contains("-openRange") || args.contains("-openGreen") else { return }
             try? await Task.sleep(for: .seconds(2))
-            if args.contains("-autoShot") {
+            if args.contains("-openGreen") {
+                // `-openGreen` (+ `-autoPutt` hits a test putt)
+                await open(AppModel.puttSpaceID)
+                if args.contains("-autoPutt") {
+                    try? await Task.sleep(for: .seconds(2))
+                    appModel.testPuttSpeed = 2.7
+                    appModel.mockSource.send(appModel.testPutt)
+                }
+            } else if args.contains("-autoShot") {
                 await hit(appModel.testSwing)
             } else {
                 await toggleRange()
@@ -146,24 +183,34 @@ struct ContentView: View {
 
     private func hit(_ settings: TestSwingSettings) async {
         if appModel.rangeState != .open {
-            await toggleRange()
+            await open(AppModel.rangeSpaceID)
         }
         appModel.mockSource.send(settings.makeSwing())
     }
 
-    private func toggleRange() async {
-        switch appModel.rangeState {
-        case .open:
+    // only one immersive space at a time, close whatevers open first
+    private func open(_ id: String) async {
+        if appModel.rangeState != .closed || appModel.puttState != .closed {
             await dismissImmersiveSpace()
-        case .closed:
-            appModel.rangeState = .opening
-            // flips to .open in onAppear, only handle fails here
-            switch await openImmersiveSpace(id: AppModel.rangeSpaceID) {
-            case .opened: break
-            default: appModel.rangeState = .closed
+            for _ in 0..<20 where appModel.rangeState != .closed || appModel.puttState != .closed {
+                try? await Task.sleep(for: .milliseconds(50))
             }
-        case .opening:
-            break
+        }
+        let isRange = id == AppModel.rangeSpaceID
+        if isRange { appModel.rangeState = .opening } else { appModel.puttState = .opening }
+        // flips to .open in onAppear, only handle fails here
+        switch await openImmersiveSpace(id: id) {
+        case .opened: break
+        default:
+            if isRange { appModel.rangeState = .closed } else { appModel.puttState = .closed }
+        }
+    }
+
+    private func toggleRange() async {
+        if appModel.rangeState == .open {
+            await dismissImmersiveSpace()
+        } else {
+            await open(AppModel.rangeSpaceID)
         }
     }
 

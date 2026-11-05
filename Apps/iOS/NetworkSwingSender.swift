@@ -10,6 +10,9 @@ import UIKit
 final class NetworkSwingSender {
     private(set) var state = LinkState.off
     private(set) var sent = 0
+    private(set) var mode = SwingMode.full
+    @ObservationIgnored var onMode: ((SwingMode) -> Void)?
+    @ObservationIgnored private var decoder = FrameDecoder()
 
     @ObservationIgnored private var browser: NWBrowser?
     @ObservationIgnored private var connection: NWConnection?
@@ -73,8 +76,10 @@ final class NetworkSwingSender {
                 switch s {
                 case .ready:
                     self.state = .connected("Vision Pro")
+                    self.decoder = FrameDecoder()
                     self.send(MessageEnvelope(payload: .hello(device: UIDevice.current.name)))
                     self.startPings()
+                    self.receive(on: c)
                 case .failed, .cancelled:
                     self.connection = nil
                     self.pingTask?.cancel()
@@ -89,6 +94,24 @@ final class NetworkSwingSender {
             }
         }
         c.start(queue: .main)
+    }
+
+    // avp talks back (just mode for now)
+    private func receive(on c: NWConnection) {
+        c.receive(minimumIncompleteLength: 1, maximumLength: 16 * 1024) { [weak self] data, _, done, error in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                if let data, !data.isEmpty {
+                    for env in self.decoder.append(data) {
+                        if case .mode(let m) = env.payload {
+                            self.mode = m
+                            self.onMode?(m)
+                        }
+                    }
+                }
+                if !done && error == nil { self.receive(on: c) }
+            }
+        }
     }
 
     private func retry() {

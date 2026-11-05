@@ -12,6 +12,23 @@ final class ClubRig {
     private var baseAxis = SIMD3<Float>(0, 0, 1)
 
     static let hands: Float = 0.38  // where grip starts along the lever
+    private var lastSetup: (Handedness, SIMD3<Float>, Bool)?
+
+    // same ball + club, just flip hands
+    func setHand(_ hand: Handedness) {
+        if let (_, ball, putter) = lastSetup {
+            setUp(for: hand, ball: ball, putter: putter)
+        } else {
+            setUp(for: hand)
+        }
+    }
+
+    // turn + slide a scene root so this club's pivot is where u stand, target off to ur lead side
+    func firstPersonTransform(hand: Handedness) -> (orientation: simd_quatf, position: SIMD3<Float>) {
+        let q = simd_quatf(angle: hand == .right ? .pi / 2 : -.pi / 2, axis: [0, 1, 0])
+        let p = q.act(root.position)
+        return (q, [-p.x, 0, -p.z])
+    }
     static let shaftLength: Float = 0.86
 
     init() {
@@ -19,12 +36,12 @@ final class ClubRig {
         setUp(for: .right)
     }
 
-    // golfer stands left of the ball (rh) or right (lh), chest ~1.1m up
-    func setUp(for hand: Handedness) {
+    // golfer stands left of the ball (rh) or right (lh), chest ~1.1m up.
+    // putter = closer to the ball (eyes over it), flat blade head
+    func setUp(for hand: Handedness, ball: SIMD3<Float> = RangeScene.ballRestPosition, putter: Bool = false) {
         let side: Float = hand == .right ? -1 : 1
-        let ball = RangeScene.ballRestPosition
         let head = ball + [0, 0, 0.036]  // face sits just behind the ball
-        let pivot = SIMD3<Float>(ball.x + side * 0.55, 1.1, ball.z)
+        let pivot = SIMD3<Float>(ball.x + side * (putter ? 0.32 : 0.55), putter ? 1.05 : 1.1, ball.z)
         let toHead = head - pivot
         let length = simd_length(toHead)
         let d = toHead / length
@@ -50,15 +67,18 @@ final class ClubRig {
         shaft.position = d * (length - Self.shaftLength / 2)
         shaft.orientation = simd_quatf(from: [0, 1, 0], to: d)
 
-        // iron head, toe points away from golfer
+        // iron head or putter blade, toe points away from golfer
         let clubHead = ModelEntity(
-            mesh: .generateBox(width: 0.078, height: 0.046, depth: 0.02, cornerRadius: 0.006),
-            materials: [SimpleMaterial(color: UIColor(white: 0.85, alpha: 1), roughness: 0.25, isMetallic: true)]
+            mesh: putter
+                ? .generateBox(width: 0.11, height: 0.026, depth: 0.03, cornerRadius: 0.005)
+                : .generateBox(width: 0.078, height: 0.046, depth: 0.02, cornerRadius: 0.006),
+            materials: [SimpleMaterial(color: UIColor(white: putter ? 0.3 : 0.85, alpha: 1), roughness: 0.25, isMetallic: true)]
         )
-        clubHead.position = d * length + [-side * 0.03, 0.006, 0]
+        clubHead.position = d * length + [-side * (putter ? 0.04 : 0.03), putter ? -0.005 : 0.006, 0]
         clubHead.components.set(GroundingShadowComponent(castsShadow: true))
 
         lever.addChild(grip)
+        lastSetup = (hand, ball, putter)
         lever.addChild(shaft)
         lever.addChild(clubHead)
     }

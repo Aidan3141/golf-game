@@ -29,6 +29,9 @@ struct GolfGamePhoneApp: App {
                     // relay only works w/ the app open, so dont let the screen lock
                     UIApplication.shared.isIdleTimerDisabled = true
                     connectivity.onReceive = { [store] in store.reload() }
+                    sender.onMode = { [connectivity] mode in
+                        connectivity.send(mode: mode)
+                    }
                     connectivity.onClub = { [sender] angle, phase in
                         sender.send(clubAngle: angle, phase: phase)
                     }

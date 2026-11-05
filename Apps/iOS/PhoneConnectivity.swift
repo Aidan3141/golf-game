@@ -23,6 +23,15 @@ final class PhoneConnectivity: NSObject {
         session?.activate()
     }
 
+    // context sticks around so the watch gets it even if it wasnt open
+    func send(mode: SwingMode) {
+        guard let session, session.activationState == .activated else { return }
+        try? session.updateApplicationContext(["mode": mode.rawValue])
+        if session.isReachable {
+            session.sendMessage(["mode": mode.rawValue], replyHandler: nil, errorHandler: nil)
+        }
+    }
+
     private func refresh() {
         guard let session, session.activationState == .activated else { return }
         isPaired = session.isPaired

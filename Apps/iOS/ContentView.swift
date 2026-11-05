@@ -15,6 +15,9 @@ struct ContentView: View {
                         .badge(watchStatus)
                     Label("Vision Pro", systemImage: "visionpro")
                         .badge(sender.state.label)
+                    if sender.state.isConnected {
+                        LabeledContent("Mode", value: sender.mode == .putt ? "putting" : "full swing")
+                    }
                     Button("Send Test Swing", systemImage: "paperplane") {
                         sender.send(SwingResult.sample.fresh())
                     }

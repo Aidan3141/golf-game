@@ -13,6 +13,10 @@ struct ContentView: View {
         ScrollView {
             VStack(spacing: 10) {
                 if workout.isRunning {
+                    Picker("Mode", selection: Binding(get: { capture.mode }, set: { capture.mode = $0 })) {
+                        Text("Full swing").tag(SwingMode.full)
+                        Text("Putting").tag(SwingMode.putt)
+                    }
                     swingView
                     Divider()
                     recordButton
@@ -39,6 +43,9 @@ struct ContentView: View {
             capture.onImpact = { [connectivity] swing in
                 connectivity.send(swing: swing)
             }
+            connectivity.onMode = { [capture] mode in
+                capture.mode = mode
+            }
             capture.onClubAngle = { [connectivity] angle, phase in
                 connectivity.send(clubAngle: angle, phase: phase)
             }
@@ -63,7 +70,7 @@ struct ContentView: View {
             if let s = capture.lastSwing {
                 Text(String(format: "%.1f : 1", s.tempoRatio))
                     .font(.system(size: 40, weight: .bold, design: .rounded))
-                    .foregroundStyle(tempoColor(s.tempoRatio))
+                    .foregroundStyle(tempoColor(s.tempoRatio, goal: capture.mode == .putt ? 2 : 3))
                 Text(String(format: "back %.2fs · down %.2fs", s.backswingDuration, s.downswingDuration))
                     .font(.footnote)
                 if let face = s.faceAngle {
@@ -100,9 +107,9 @@ struct ContentView: View {
         }
     }
 
-    // 3:1 is the goal, green near it
-    private func tempoColor(_ r: Double) -> Color {
-        switch abs(r - 3) {
+    // 3:1 full / 2:1 putt, green near it
+    private func tempoColor(_ r: Double, goal: Double) -> Color {
+        switch abs(r - goal) {
         case ..<0.4: .green
         case ..<0.9: .yellow
         default: .orange

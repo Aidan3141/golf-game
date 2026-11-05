@@ -99,6 +99,15 @@ debug launch args (Debug builds only): iphone `-autoTestSwing` sends a sample on
 - `AddressCheck` (avp, toggle, off by default): arkit `HandTrackingProvider`, only checks wrists at address: together (<12cm), height 0.55-1.15m, roughly in front of u. never tracks the fast swing. not testable in the sim
 - watch: impact tap is a double "success" when tempo is in the zone, plain strong tap otherwise. optional "tempo taps" plays the same 3:1 rhythm as haptics right after address
 
+## putting green (M8)
+
+- separate `ImmersiveSpace` (mixed), green sits on ur real floor (space origin = ur feet). only one space open at a time, window switches between range + green
+- `PuttingScene` same trick as first person range: laid out w/ target = -z, then turned so the putter pivot is where u stand. cup w/ white liner, flagstick, fringe. `ClubRig` has a putter variant (closer pivot, blade head)
+- `PuttSimulator` (swingkit, tested): 2d roll w/ friction (~stimp 10) + slope pull, drops if it crosses the cup under 1.3 m/s, lips out if faster. stroke speed = wrist rad/s x 0.6, aim from faceAngle (same flip/strength calibration as full swings)
+- mode: avp sends `mode(.putt/.full)` back over the same tcp link when spaces change, phone forwards to the watch w/ `updateApplicationContext` (+ sendMessage if up). watch swaps to `SwingDetectorConfig.putting` (GUESSED thresholds, no recorded putts yet) + 2:1 tempo goal. watch also has a manual picker
+- `Coach.puttTip` goal tempo 2:1
+- debug: `-openGreen` (+ `-autoPutt`, `-raise`)
+
 ## 3d content
 
 xcode 27 visionOS template no longer makes a reality composer pro package, so the range is built in code from primitives + textures in `Apps/VisionOS/Resources`. see `ASSETS.md`

@@ -11,6 +11,7 @@ final class WatchConnectivityManager: NSObject {
     private(set) var pendingTransfers = 0
     private(set) var lastError: String?
 
+    @ObservationIgnored var onMode: ((SwingMode) -> Void)?
     @ObservationIgnored private let session: WCSession? = WCSession.isSupported() ? .default : nil
 
     override init() {
@@ -63,10 +64,26 @@ final class WatchConnectivityManager: NSObject {
 extension WatchConnectivityManager: WCSessionDelegate {
     nonisolated func session(_ session: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: (any Error)?) {
         let msg = error?.localizedDescription
+        let ctx = session.receivedApplicationContext
         Task { @MainActor in
             self.lastError = msg
             self.refresh()
         }
+        handleMode(ctx)
+    }
+
+    // avp switched spaces -> phone tells us. context survives if we werent running
+    nonisolated func session(_ session: WCSession, didReceiveApplicationContext ctx: [String: Any]) {
+        handleMode(ctx)
+    }
+
+    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        handleMode(message)
+    }
+
+    nonisolated private func handleMode(_ dict: [String: Any]) {
+        guard let raw = dict["mode"] as? String, let mode = SwingMode(rawValue: raw) else { return }
+        Task { @MainActor in self.onMode?(mode) }
     }
 
     nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
