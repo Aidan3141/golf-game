@@ -27,7 +27,7 @@ targets:
     scheme: {}  # shared scheme so it survives regen
     type: application
     platform: visionOS
-    sources: [Apps/VisionOS]
+    sources: [Apps/VisionOS, Apps/Shared]
     dependencies:
       - package: SwingKit
     settings:
@@ -42,13 +42,15 @@ targets:
           UIApplicationPreferredDefaultSceneSessionRole: UIWindowSceneSessionRoleApplication
           UIApplicationSupportsMultipleScenes: true
           UISceneConfigurations: {}
+        NSLocalNetworkUsageDescription: Golf Game connects your iPhone and Vision Pro so your watch swings show up in the headset.
+        NSBonjourServices: [_golfgame._tcp]
 
   # iphone relay app, embeds the watch app
   GolfGame iPhone:
     scheme: {}  # shared scheme so it survives regen
     type: application
     platform: iOS
-    sources: [Apps/iOS]
+    sources: [Apps/iOS, Apps/Shared]
     dependencies:
       - package: SwingKit
       - target: GolfGame Watch
@@ -67,6 +69,8 @@ targets:
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSLocalNetworkUsageDescription: Golf Game connects your iPhone and Vision Pro so your watch swings show up in the headset.
+        NSBonjourServices: [_golfgame._tcp]
 
   # watch app, swing capture lives here later
   GolfGame Watch:

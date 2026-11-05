@@ -32,9 +32,11 @@ struct ContentView: View {
         .onAppear {
             capture.handedness = handedness
             capture.saveSwingData = saveSwingData
-            capture.onSwing = { [connectivity] _, rec in
-                // M5 sends the SwingResult on to the vision pro, for now just the raw data
-                if let rec { connectivity.send(rec) }
+            capture.onImpact = { [connectivity] swing in
+                connectivity.send(swing: swing)
+            }
+            capture.onSwingData = { [connectivity] rec in
+                connectivity.send(rec)
             }
         }
         .onChange(of: handedness) { _, h in capture.handedness = h }

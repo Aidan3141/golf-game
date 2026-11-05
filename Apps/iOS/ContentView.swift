@@ -4,16 +4,38 @@ import SwingKit
 struct ContentView: View {
     @Environment(PhoneConnectivity.self) private var connectivity
     @Environment(RecordingStore.self) private var store
+    @Environment(NetworkSwingSender.self) private var sender
+    @Environment(SwingFeed.self) private var feed
 
     var body: some View {
         NavigationStack {
             List {
-                Section("connections") {
+                Section {
                     Label("Watch", systemImage: "applewatch")
                         .badge(watchStatus)
-                    // real status in M5
                     Label("Vision Pro", systemImage: "visionpro")
-                        .badge("—")
+                        .badge(sender.state.label)
+                    Button("Send Test Swing", systemImage: "paperplane") {
+                        sender.send(SwingResult.sample.fresh())
+                    }
+                    .disabled(!sender.state.isConnected)
+                } footer: {
+                    Text("keep this app open while u play, it relays watch swings to the headset")
+                }
+
+                if !feed.entries.isEmpty {
+                    Section("live swings") {
+                        ForEach(feed.entries) { e in
+                            HStack {
+                                Text(String(format: "%.1f : 1", e.swing.tempoRatio))
+                                    .font(.headline.monospacedDigit())
+                                Spacer()
+                                Text(String(format: "%.0f rad/s · %.0f ms", e.swing.peakWristAngularVelocity, e.watchLatency * 1000))
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
                 }
 
                 Section {
@@ -44,6 +66,17 @@ struct ContentView: View {
             }
             .refreshable { store.reload() }
         }
+        #if DEBUG
+        // `-autoTestSwing`: send a sample once connected, for sim testing
+        .task {
+            guard ProcessInfo.processInfo.arguments.contains("-autoTestSwing") else { return }
+            while !sender.state.isConnected {
+                try? await Task.sleep(for: .milliseconds(300))
+            }
+            try? await Task.sleep(for: .seconds(1))
+            sender.send(SwingResult.sample.fresh())
+        }
+        #endif
     }
 
     private var watchStatus: String {

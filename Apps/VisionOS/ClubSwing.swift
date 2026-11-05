@@ -172,5 +172,9 @@ extension ClubSwingComponent {
             effects: effects,
             rig: ClubRigRef(rig: rig)
         )
+        // real swing already happened on ur wrist, jump straight to impact so the ball goes now
+        if shot.live {
+            elapsed = impactTime
+        }
     }
 }

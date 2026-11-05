@@ -20,6 +20,12 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_golfgame._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Golf Game connects your iPhone and Vision Pro so your watch swings show up in the headset.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

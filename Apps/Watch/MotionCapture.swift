@@ -37,8 +37,10 @@ final class MotionCapture {
     var handedness = Handedness.right {
         didSet { detector.handedness = handedness }
     }
-    // gets each detected swing + its raw data (if saveSwingData)
-    @ObservationIgnored var onSwing: ((SwingResult, SwingRecording?) -> Void)?
+    // fires right at impact w/ confident swings, this is what launches the ball
+    @ObservationIgnored var onImpact: ((SwingResult) -> Void)?
+    // raw data around each swing, ~1-2s later once batched data lands (if saveSwingData)
+    @ObservationIgnored var onSwingData: ((SwingRecording) -> Void)?
     var saveSwingData = true
 
     @ObservationIgnored private var accelBuffer = RingBuffer<AccelSample>(capacity: 8_000)
@@ -126,6 +128,7 @@ final class MotionCapture {
                 if result.confidence >= detector.config.minConfidenceToSend {
                     lastSwing = result
                     lastRejected = nil
+                    onImpact?(result)
                 } else {
                     lastRejected = "not sure that was a swing"
                 }
@@ -138,16 +141,13 @@ final class MotionCapture {
 
     // wait for the batched data around the swing, then hand it off
     private func deliver(_ result: SwingResult, timeline: SwingTimeline) async {
-        guard saveSwingData, !isBusy else {
-            onSwing?(result, nil)
-            return
-        }
+        guard saveSwingData, !isBusy else { return }
         let start = timeline.impact - 2.5
         let end = timeline.impact + 0.8
         await waitForData(until: end)
-        let rec = slice(start: start, end: end, wallStart: Date.now.addingTimeInterval(start - ProcessInfo.processInfo.systemUptime),
-                        note: String(format: "auto, tempo %.2f, conf %.2f", result.tempoRatio, result.confidence))
-        onSwing?(result, rec)
+        guard let rec = slice(start: start, end: end, wallStart: Date.now.addingTimeInterval(start - ProcessInfo.processInfo.systemUptime),
+                        note: String(format: "auto, tempo %.2f, conf %.2f", result.tempoRatio, result.confidence)) else { return }
+        onSwingData?(rec)
     }
 
     // high rate, needs an active workout session. data shows up in ~1s batches

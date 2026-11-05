@@ -7,6 +7,7 @@ struct Shot: Identifiable, Equatable {
     let id = UUID()
     let swing: SwingResult
     let flight: FlightResult
+    let live: Bool  // real swing from the watch, ball goes right away (no club replay)
 }
 
 @MainActor
@@ -23,25 +24,27 @@ final class AppModel {
     var tuning = FlightTuning.standard
     private(set) var lastShot: Shot?
 
-    // fake for now, real watch -> iphone -> avp source drops in here in M5
+    // sliders feed the mock, real swings come in over the network from the phone
     let mockSource = MockSwingSource()
-    @ObservationIgnored private var listenTask: Task<Void, Never>?
+    let network = NetworkSwingReceiver()
+    @ObservationIgnored private var listenTasks: [Task<Void, Never>] = []
 
     init() {
-        listen(to: mockSource)
+        listen(to: mockSource, live: false)
+        listen(to: network, live: true)
+        network.start()
     }
 
-    func listen(to source: some SwingSource) {
-        listenTask?.cancel()
+    func listen(to source: some SwingSource, live: Bool) {
         let stream = source.swings
-        listenTask = Task { [weak self] in
+        listenTasks.append(Task { [weak self] in
             for await swing in stream {
-                self?.hit(swing)
+                self?.hit(swing, live: live)
             }
-        }
+        })
     }
 
-    func hit(_ swing: SwingResult) {
-        lastShot = Shot(swing: swing, flight: FlightSimulator.simulate(swing: swing, tuning: tuning))
+    func hit(_ swing: SwingResult, live: Bool = false) {
+        lastShot = Shot(swing: swing, flight: FlightSimulator.simulate(swing: swing, tuning: tuning), live: live)
     }
 }

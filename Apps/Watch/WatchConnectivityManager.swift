@@ -34,6 +34,19 @@ final class WatchConnectivityManager: NSObject {
         }
     }
 
+    // small + fast. sendMessage if the phone app is up, otherwise queue it
+    func send(swing: SwingResult) {
+        guard let session, let data = try? MessageEnvelope(payload: .swing(swing)).encoded() else { return }
+        let msg: [String: Any] = ["env": data]
+        if session.isReachable {
+            session.sendMessage(msg, replyHandler: nil) { _ in
+                WCSession.default.transferUserInfo(["env": data])
+            }
+        } else {
+            session.transferUserInfo(msg)
+        }
+    }
+
     private func refresh() {
         guard let session else { return }
         isReachable = session.isReachable

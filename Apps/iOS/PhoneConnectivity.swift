@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwingKit
 import WatchConnectivity
 
 // gets recording files from the watch. file has to be moved before the delegate returns or its gone
@@ -13,6 +14,7 @@ final class PhoneConnectivity: NSObject {
 
     @ObservationIgnored private let session: WCSession? = WCSession.isSupported() ? .default : nil
     @ObservationIgnored var onReceive: (() -> Void)?
+    @ObservationIgnored var onSwing: ((SwingResult, Date) -> Void)?  // swing + when watch sent it
 
     override init() {
         super.init()
@@ -46,6 +48,26 @@ extension PhoneConnectivity: WCSessionDelegate {
 
     nonisolated func sessionWatchStateDidChange(_ session: WCSession) {
         Task { @MainActor in self.refresh() }
+    }
+
+    // swings come as ["env": envelope json]. sendMessage when reachable, userInfo as backup
+    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        handle(message)
+    }
+
+    nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        handle(userInfo)
+    }
+
+    nonisolated private func handle(_ dict: [String: Any]) {
+        guard let data = dict["env"] as? Data,
+              let env = try? MessageEnvelope.decode(data),
+              case .swing(let swing) = env.payload else { return }
+        let sentAt = env.sentAt
+        Task { @MainActor in
+            self.isReachable = true
+            self.onSwing?(swing, sentAt)
+        }
     }
 
     nonisolated func session(_ session: WCSession, didReceive file: WCSessionFile) {

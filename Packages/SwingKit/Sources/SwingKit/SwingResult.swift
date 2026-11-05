@@ -56,3 +56,19 @@ extension SwingResult {
         confidence: 0.9
     )
 }
+
+extension SwingResult {
+    // same swing, new id + time. for test sends
+    public func fresh() -> SwingResult {
+        SwingResult(
+            handedness: handedness,
+            backswingDuration: backswingDuration,
+            downswingDuration: downswingDuration,
+            peakWristAngularVelocity: peakWristAngularVelocity,
+            peakAcceleration: peakAcceleration,
+            smoothnessScore: smoothnessScore,
+            pathBias: pathBias,
+            confidence: confidence
+        )
+    }
+}

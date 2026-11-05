@@ -14,7 +14,10 @@ sends small SwingResult     debug charts                  coaching cards
 
 - watch does all the analysis, only sends a small `SwingResult`. raw samples go via `transferFile`, debug only
 - few hundred ms swing → ball latency is fine. watch haptic hits right away, ball launches after
-- iphone → vision pro transport goes behind a protocol so it can be swapped (decided in M5, leaning network framework + bonjour)
+- iphone → vision pro: Network framework (NWListener on avp, NWBrowser on phone, bonjour `_golfgame._tcp`) w/ `includePeerToPeer` so it rides awdl and works w/o a shared wifi (campus wifi blocks bonjour). picked over multipeer bc its the modern api, plays nicer w/ swift 6, and does the same peer to peer trick. avp side is just a `SwingSource`, so swapping transports only touches `NetworkSwingReceiver` / `NetworkSwingSender`
+- wire format: `MessageFramer` = 4 byte big endian length + json `MessageEnvelope`. `FrameDecoder` reassembles from a tcp byte stream. phone sends `hello` on connect + `ping` every 2s
+- watch → phone: `sendMessage(["env": envelope])` when reachable, `transferUserInfo` as backup. sent the instant impact is detected, raw data follows separately
+- phone relay only runs w/ the app open (idle timer off). background relay = later maybe
 
 ## targets
 
@@ -59,12 +62,12 @@ coming: coaching tips (M6)
 ## vision pro app
 
 - `AppModel` holds range state, test swing sliders, last `Shot`. listens to a `SwingSource`
-- `SwingSource` protocol, `MockSwingSource` feeds swings from the sliders. real network source plugs in here in M5
+- `SwingSource` protocol. `MockSwingSource` feeds swings from the sliders, `NetworkSwingReceiver` from the phone. live (network) shots launch the ball right away + the club just does the follow thru, slider shots replay the whole swing
 - `RangeScene` builds the range in code: sky sphere (8k jpg, inside out) + image based light from hdr, tinted grass w/ mowed stripes, tee box, staggered flags 50-250 yd w/ billboard labels
 - `ClubRig` + `ClubSwingSystem` ghost club next to the ball. one rigid lever rotating in a tilted swing plane, timed by the swings backswing/downswing durations (so tempo shows), swing length from wrist speed, plane tilts a bit w/ pathBias. launches the ball at impact
 - `BallFlightSystem` ecs system, plays a precomputed flight on the ball. grows the ball w/ distance so u can see it, drops trail segments, carry + rest markers
 
-debug launch args (Debug builds only): `-autoShot` opens range + hits, `-hideWindow` closes the panel after, `-sideView` turns the world so the sim camera sees the arc, `-clubView` face-on look at the club
+debug launch args (Debug builds only): iphone `-autoTestSwing` sends a sample once connected. avp `-autoShot` opens range + hits, `-hideWindow` closes the panel after, `-sideView` turns the world so the sim camera sees the arc, `-clubView` face-on look at the club
 
 ## watch app (M3)
 

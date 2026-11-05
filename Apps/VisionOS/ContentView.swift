@@ -12,6 +12,13 @@ struct ContentView: View {
         @Bindable var appModel = appModel
         NavigationStack {
             Form {
+                Section("connection") {
+                    LabeledContent("iPhone", value: appModel.network.state.label)
+                    if let ms = appModel.network.lastLatency {
+                        LabeledContent("Last swing", value: String(format: "%.0f ms from phone · %d total", ms * 1000, appModel.network.received))
+                    }
+                }
+
                 Section {
                     Button(appModel.rangeState == .open ? "Leave Range" : "Go to Range") {
                         Task { await toggleRange() }
@@ -60,6 +67,12 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("Golf Game")
+        }
+        // real swing w/ range closed -> open it, RangeView plays the shot once loaded
+        .onChange(of: appModel.lastShot) { _, shot in
+            if shot?.live == true && appModel.rangeState == .closed {
+                Task { await toggleRange() }
+            }
         }
         #if DEBUG
         // `-autoShot` launch arg: open range + hit, for sim testing w/o clicking
