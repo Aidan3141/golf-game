@@ -7,6 +7,7 @@ struct PuttingView: View {
     @Environment(AppModel.self) private var appModel
     @State private var scene: PuttingScene?
     @State private var playedID: UUID?
+    @State private var handClub: HandClub?
 
     var body: some View {
         RealityView { content, attachments in
@@ -22,6 +23,15 @@ struct PuttingView: View {
             }
             #endif
             s.club.root.components.set(LiveClubComponent(live: LiveClubRef(live: appModel.liveClub), rig: ClubRigRef(rig: s.club)))
+            let hc = HandClub(putter: true)
+            hc.ball = s.ball
+            hc.sceneRoot = s.root
+            hc.rig = s.club
+            hc.appModel = appModel
+            hc.minContactSpeed = 0.15  // putts are slow
+            hc.root.components.set(HandClubComponent(ref: HandClubRef(club: hc)))
+            content.add(hc.root)
+            handClub = hc
             if let card = attachments.entity(for: "card") {
                 card.name = "card"
                 content.add(card)
@@ -46,15 +56,22 @@ struct PuttingView: View {
             await snapLoop(club: scene.club, root: scene.root)
         }
         .onChange(of: appModel.addressCheckOn, initial: true) { _, on in
-            if on { appModel.addressCheck.start() } else { appModel.addressCheck.stop() }
+            if on { appModel.startHandTracking() } else { appModel.stopHandTracking() }
         }
+        .onDisappear { appModel.stopHandTracking() }
         .onChange(of: appModel.puttSetup) { _, setup in
             Task { await scene?.layout(setup, hand: appModel.handedness) }
         }
         .onChange(of: appModel.handedness) { _, hand in
             Task { await scene?.layout(appModel.puttSetup, hand: hand) }
+            handClub?.reset()
         }
         .onChange(of: appModel.lastPutt) { _, p in
+            // watch tempo came in for a putt thats already rolling, just update the card
+            if let p, p.refined, p.id == playedID {
+                if appModel.puttCard?.id == p.id { appModel.puttCard = p }
+                return
+            }
             guard let p, let scene, p.id != playedID else { return }
             playedID = p.id
             appModel.puttCard = nil
@@ -62,8 +79,8 @@ struct PuttingView: View {
             scene.ball.components.set(PuttRollComponent(p.result))
             Task {
                 try? await Task.sleep(for: .seconds(p.result.duration + 0.3))
-                guard appModel.lastPutt?.id == p.id else { return }
-                appModel.puttCard = p
+                guard let latest = appModel.lastPutt, latest.id == p.id else { return }
+                appModel.puttCard = latest
                 if p.result.holed {
                     appModel.holed()
                 } else {

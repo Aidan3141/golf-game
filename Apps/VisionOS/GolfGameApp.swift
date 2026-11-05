@@ -12,6 +12,8 @@ struct GolfGameApp: App {
         ClubSwingSystem.registerSystem()
         LiveClubComponent.registerComponent()
         LiveClubSystem.registerSystem()
+        HandClubComponent.registerComponent()
+        HandClubSystem.registerSystem()
         PuttRollComponent.registerComponent()
         PuttRollSystem.registerSystem()
     }

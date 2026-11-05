@@ -4,20 +4,23 @@ import SwingKit
 
 // one hit = the swing + where the ball goes
 struct Shot: Identifiable, Equatable {
-    let id = UUID()
+    var id = UUID()
     let swing: SwingResult
     let flight: FlightResult
     let live: Bool  // real swing from the watch, ball goes right away (no club replay)
     let tip: CoachingTip
+    var provisional = false  // launched off the hand club contact, watch numbers not in yet
+    var refined = false  // same shot, watch numbers swapped in mid flight
 }
 
 struct PuttShot: Identifiable, Equatable {
-    let id = UUID()
+    var id = UUID()
     let swing: SwingResult
     let setup: PuttSetup
     let result: PuttResult
     let live: Bool
     let tip: CoachingTip
+    var refined = false  // same putt, watch tempo swapped in
 }
 
 @MainActor
@@ -59,7 +62,21 @@ final class AppModel {
 
     let liveClub = LiveClub()
     let addressCheck = AddressCheck()
-    var addressCheckOn = false
+    let handTracking = HandTracking()
+    var addressCheckOn = true  // hand tracking on/off (club + address check)
+
+    enum ClubSource: String, CaseIterable {
+        case hybrid = "Hybrid"
+        case hands = "Hands"
+        case watch = "Watch"
+    }
+    var clubSource = ClubSource.hybrid
+    var handStats = "—"
+
+    // contact launch waits this long for the watch to refine it
+    static let refineWindow = 1.5
+    @ObservationIgnored private var contactAt: Double?
+    @ObservationIgnored private var contactFace: Double?
 
     // tempo trainer metronome in the range
     var tempoTrainerOn = false
@@ -103,7 +120,59 @@ final class AppModel {
         })
     }
 
+    func startHandTracking() {
+        handTracking.start()
+        addressCheck.set(handTracking.state == .unsupported ? .unsupported : .noHands)
+    }
+
+    func stopHandTracking() {
+        handTracking.stop()
+        addressCheck.set(.off)
+    }
+
+    // the hand club hit the ball. launch right now off what the hands say, the watch swing
+    // (lands ~0.1-0.3s later thru the phone) refines it. face angle from the hands is physical,
+    // so no flip/strength calibration here
+    func contact(headSpeed: Double, faceDegrees: Double) {
+        let now = ProcessInfo.processInfo.systemUptime
+        contactAt = now
+        contactFace = faceDegrees
+        if mode == .putt {
+            let speed = min(headSpeed * 1.6, PuttTuning.standard.maxSpeed)
+            let r = PuttSimulator.simulate(speed: speed, aimDegrees: faceDegrees * PuttTuning.standard.aimDegreesPerFaceDegree, setup: puttSetup)
+            let placeholder = SwingResult(handedness: handedness, backswingDuration: 0.6, downswingDuration: 0.3,
+                                          peakWristAngularVelocity: speed / PuttTuning.standard.speedPerWristRadPerSec,
+                                          peakAcceleration: 1, smoothnessScore: 0.8, pathBias: 0, confidence: 0.6)
+            puttsThisHole += 1
+            totalPutts += 1
+            lastPutt = PuttShot(swing: placeholder, setup: puttSetup, result: r, live: true,
+                                tip: Coach.puttTip(for: placeholder, result: r))
+            return
+        }
+        // 7 iron smash ~1.35, ball = wrist x 2.72 -> wrist ~ 0.5 x head speed
+        let swing = SwingResult(handedness: handedness, backswingDuration: 0.9, downswingDuration: 0.3,
+                                peakWristAngularVelocity: headSpeed * 0.5, peakAcceleration: 10,
+                                smoothnessScore: 0.8, pathBias: facePath(faceDegrees), confidence: 0.6)
+        let flight = FlightSimulator.simulate(swing: swing, tuning: tuning)
+        let shot = Shot(swing: swing, flight: flight, live: true,
+                        tip: Coach.tip(for: swing, flight: flight), provisional: true)
+        lastShot = shot
+        session.append(shot)
+    }
+
+    // face open to the right -> slice for a righty. ~15 deg = full curve
+    private func facePath(_ face: Double) -> Double {
+        let sign: Double = handedness == .right ? -1 : 1
+        return min(max(sign * face / Self.fullCurveDegrees, -1), 1)
+    }
+
     func hit(_ swing: SwingResult, live: Bool = false) {
+        // watch swing right after a hand contact = same shot, swap the real numbers in
+        if live, let at = contactAt, ProcessInfo.processInfo.systemUptime - at < Self.refineWindow {
+            contactAt = nil
+            refine(with: swing)
+            return
+        }
         if mode == .putt {
             putt(swing, live: live)
             return
@@ -116,6 +185,23 @@ final class AppModel {
         let shot = Shot(swing: swing, flight: flight, live: live, tip: Coach.tip(for: swing, flight: flight))
         lastShot = shot
         session.append(shot)
+    }
+
+    private func refine(with watch: SwingResult) {
+        if mode == .putt {
+            // putt speed from the hands is good (slow motion), just take the watch tempo for the card
+            guard let p = lastPutt else { return }
+            lastPutt = PuttShot(id: p.id, swing: watch, setup: p.setup, result: p.result, live: true,
+                                tip: Coach.puttTip(for: watch, result: p.result), refined: true)
+            return
+        }
+        guard let old = lastShot, old.provisional else { return }
+        let swing = watch.with(pathBias: contactFace.map(facePath) ?? watch.pathBias)
+        let flight = FlightSimulator.simulate(swing: swing, tuning: tuning)
+        let shot = Shot(id: old.id, swing: swing, flight: flight, live: true,
+                        tip: Coach.tip(for: swing, flight: flight), provisional: false, refined: true)
+        lastShot = shot
+        if let i = session.lastIndex(where: { $0.id == old.id }) { session[i] = shot }
     }
 
     func putt(_ swing: SwingResult, live: Bool) {

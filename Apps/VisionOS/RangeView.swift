@@ -6,6 +6,8 @@ struct RangeView: View {
     @Environment(AppModel.self) private var appModel
     @State private var scene: RangeScene?
     @State private var playedShotID: UUID?
+    @State private var handClub: HandClub?
+    @State private var launchedAt = Date.distantPast
 
     var body: some View {
         RealityView { content, attachments in
@@ -14,6 +16,15 @@ struct RangeView: View {
             scene = s
             s.applyView(appModel.viewMode, hand: appModel.handedness)
             s.club.root.components.set(LiveClubComponent(live: LiveClubRef(live: appModel.liveClub), rig: ClubRigRef(rig: s.club)))
+            // club on ur real hands, world space
+            let hc = HandClub(putter: false)
+            hc.ball = s.ball
+            hc.sceneRoot = s.root
+            hc.rig = s.club
+            hc.appModel = appModel
+            hc.root.components.set(HandClubComponent(ref: HandClubRef(club: hc)))
+            content.add(hc.root)
+            handClub = hc
             #if DEBUG
             // `-sideView`: turn the world so the sim camera sees the shot from the side
             if ProcessInfo.processInfo.arguments.contains("-sideView") {
@@ -62,17 +73,19 @@ struct RangeView: View {
         .onChange(of: appModel.trainerBackswing) { _, _ in updateTrainer() }
         .onDisappear {
             scene?.trainer.stop()
-            appModel.addressCheck.stop()
+            appModel.stopHandTracking()
         }
         .onChange(of: appModel.addressCheckOn, initial: true) { _, on in
-            if on { appModel.addressCheck.start() } else { appModel.addressCheck.stop() }
+            if on { appModel.startHandTracking() } else { appModel.stopHandTracking() }
         }
         .onChange(of: appModel.viewMode) { _, mode in
             scene?.applyView(mode, hand: appModel.handedness)
         }
         .onChange(of: appModel.handedness) { _, hand in
             scene?.applyView(appModel.viewMode, hand: hand)
+            handClub?.reset()
         }
+        .onChange(of: appModel.viewMode) { _, _ in handClub?.reset() }
         .onChange(of: appModel.lastShot) { _, shot in
             guard let shot, let scene else { return }
             play(shot, in: scene)
@@ -107,8 +120,9 @@ struct RangeView: View {
         appModel.cardShot = nil
         Task {
             try? await Task.sleep(for: .seconds(secs))
-            if appModel.lastShot?.id == shot.id {
-                appModel.cardShot = shot
+            // grab the latest version, it may have been refined mid flight
+            if let latest = appModel.lastShot, latest.id == shot.id {
+                appModel.cardShot = latest
             }
         }
     }
@@ -130,16 +144,27 @@ struct RangeView: View {
     }
 
     private func play(_ shot: Shot, in scene: RangeScene) {
+        // watch numbers landed for a ball thats already flying -> bend it onto the real path
+        if shot.refined && shot.id == playedShotID {
+            if var f = scene.ball.components[BallFlightComponent.self] {
+                f.retarget(shot.flight, currentPosition: scene.ball.position)
+                scene.ball.components.set(f)
+            }
+            let landing = shot.flight.points[shot.flight.landingIndex].time + 0.3
+            showCard(for: shot, after: max(landing - Date.now.timeIntervalSince(launchedAt), 0.1))
+            return
+        }
         guard shot.id != playedShotID else { return }
         playedShotID = shot.id
+        launchedAt = .now
         let landing = shot.flight.points[shot.flight.landingIndex].time + 0.3
         scene.clearEffects()
         scene.resetBall()
         if shot.swing.handedness != appModel.handedness {
             appModel.testSwing.handedness = shot.swing.handedness
         }
-        // live swing w/ the club streaming -> u already swung it, just launch
-        if shot.live && appModel.liveClub.isFresh {
+        // hand club contact, or live swing w/ the club streaming -> u already swung it, just launch
+        if shot.provisional || (shot.live && appModel.liveClub.isFresh) || handClub?.isActive == true {
             scene.ball.components.set(BallFlightComponent(flight: shot.flight, effects: scene.effects))
             showCard(for: shot, after: landing)
             return

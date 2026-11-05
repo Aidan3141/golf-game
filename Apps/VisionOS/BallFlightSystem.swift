@@ -16,6 +16,23 @@ struct BallFlightComponent: Component {
     var lastTrailPoint: SIMD3<Float>?
     var landed = false
     var launched = false
+    // after a refine: where the ball was minus where the new path says, fades out
+    var blendOffset = SIMD3<Float>.zero
+    var blendLeft: Float = 0
+    static let blendTime: Float = 0.35
+
+    // swap in a better flight mid air (watch numbers came in after a hand contact launch)
+    mutating func retarget(_ flight: FlightResult, currentPosition: SIMD3<Float>) {
+        points = flight.points.map { RangeScene.scenePoint($0.position) }
+        times = flight.points.map { Float($0.time) }
+        landingIndex = flight.landingIndex
+        carryYards = Units.yards(flight.carry)
+        totalYards = Units.yards(flight.total)
+        index = 0
+        while index < points.count - 1 && times[index + 1] <= elapsed { index += 1 }
+        blendOffset = currentPosition - points[index]
+        blendLeft = Self.blendTime
+    }
 
     init(flight: FlightResult, effects: Entity) {
         points = flight.points.map { RangeScene.scenePoint($0.position) }
@@ -51,7 +68,12 @@ struct BallFlightSystem: System {
                 let u = min(max((f.elapsed - t0) / max(t1 - t0, 0.0001), 0), 1)
                 pos = mix(f.points[f.index], f.points[f.index + 1], t: u)
             }
-            ball.position = pos
+            var shown = pos
+            if f.blendLeft > 0 {
+                shown += f.blendOffset * (f.blendLeft / BallFlightComponent.blendTime)
+                f.blendLeft -= dt
+            }
+            ball.position = shown
 
             // real ball is 4cm, invisible at 150 yd. grow it w/ distance so u can follow it
             let dist = simd_distance(ball.position(relativeTo: nil), Self.headPosition)

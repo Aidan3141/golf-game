@@ -68,9 +68,18 @@ struct ContentView: View {
                 }
 
                 Section {
-                    Toggle("Hand tracking (grip snap + address check)", isOn: $appModel.addressCheckOn)
+                    Toggle("Hand tracking", isOn: $appModel.addressCheckOn)
                     if appModel.addressCheckOn {
-                        LabeledContent("Hands", value: appModel.rangeState == .open ? appModel.addressCheck.status.label : "open the range")
+                        Picker("Club follows", selection: $appModel.clubSource) {
+                            ForEach(AppModel.ClubSource.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                        LabeledContent("Address", value: appModel.mode == .full && appModel.rangeState != .open ? "open a space" : appModel.addressCheck.status.label)
+                        LabeledContent("Tracking", value: appModel.handStats)
+                            .font(.footnote)
+                        Text("hold still at address w/ both hands on the grip for a sec to lock the club to ur hands")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                     Toggle("Tempo trainer", isOn: $appModel.tempoTrainerOn)
                     if appModel.tempoTrainerOn {

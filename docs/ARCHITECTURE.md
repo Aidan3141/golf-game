@@ -86,6 +86,14 @@ debug launch args (Debug builds only): iphone `-autoTestSwing` sends a sample on
 - `RecordingStore` lists/loads/deletes them
 - `RecordingDetailView` swift charts of accel + rotation (magnitude or x/y/z), reruns the detector and draws takeaway/top/impact lines + tempo, share button so recordings can be airdropped to the mac
 
+## hand driven club
+
+- `HandTracking` one arkit session for the app. `predicted()` = `handAnchors(at: now + 25ms)` so the pose is for when the frame shows up, not when the cameras saw it
+- `HandClub` world space club (not under the range root). calibrates when both hands sit still at address for 0.5s: stores the club pose in the lead hand frame (offsetRot) + where the grip is vs the lead wrist. every frame after: club = lead hand rotation x offsetRot, grip = lead wrist + offset. so wrist twist = club twist w/ no watch lag
+- hybrid: if hands drop out (top of backswing, blur at impact) the last pose keeps swinging around the watch lever axis by how much the watch angle moved. hands only = no fallback, watch = old lever club
+- contact launch: when the hand clubhead crosses the ball plane heading at the target (within 15cm, >1.5 m/s, putter 8cm/0.15 m/s) the ball launches right then off head speed + face angle from the hands (provisional). the watch swing that arrives inside 1.5s refines it: same shot id, `BallFlightComponent.retarget` blends onto the new path over 0.35s. putts keep the hand speed + just take the watch tempo for the card
+- window: hand tracking toggle (on by default), club follows picker, tracking % / calibrated / contact speed readout
+
 ## coaching (M6)
 
 - avp: `ShotCard` attachment pops up ~0.3s after the ball lands, on ur trail side so it doesnt block the flight. carry/total, tempo vs 3:1 bar, smoothness, curve, tip. window has a session summary + new session button
