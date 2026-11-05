@@ -58,9 +58,10 @@ coming: swing detector (M4), coaching tips (M6)
 - `AppModel` holds range state, test swing sliders, last `Shot`. listens to a `SwingSource`
 - `SwingSource` protocol, `MockSwingSource` feeds swings from the sliders. real network source plugs in here in M5
 - `RangeScene` builds the range in code: sky sphere (8k jpg, inside out) + image based light from hdr, tinted grass w/ mowed stripes, tee box, staggered flags 50-250 yd w/ billboard labels
+- `ClubRig` + `ClubSwingSystem` ghost club next to the ball. one rigid lever rotating in a tilted swing plane, timed by the swings backswing/downswing durations (so tempo shows), swing length from wrist speed, plane tilts a bit w/ pathBias. launches the ball at impact
 - `BallFlightSystem` ecs system, plays a precomputed flight on the ball. grows the ball w/ distance so u can see it, drops trail segments, carry + rest markers
 
-debug launch args (Debug builds only): `-autoShot` opens range + hits, `-hideWindow` closes the panel after, `-sideView` turns the world so the sim camera sees the arc
+debug launch args (Debug builds only): `-autoShot` opens range + hits, `-hideWindow` closes the panel after, `-sideView` turns the world so the sim camera sees the arc, `-clubView` face-on look at the club
 
 ## 3d content
 

@@ -9,13 +9,14 @@ import UIKit
 // builds the driving range. all sizes in meters, downrange = -z
 @MainActor
 final class RangeScene {
-    nonisolated static let teePosition = SIMD3<Float>(0, 0, -0.6)
+    nonisolated static let teePosition = SIMD3<Float>(0, 0, -2.2)  // far enough out that the backswing misses ur head
     nonisolated static let ballRadius = Float(FlightTuning.standard.ballRadius)
     nonisolated static let groundY: Float = 0.005  // tee box top, ball sits here
 
     let root = Entity()
     let ball: ModelEntity
     let effects = Entity()  // trails + markers, cleared each shot
+    let club = ClubRig()
     private let iblRoot = Entity()
 
     init() async {
@@ -29,6 +30,7 @@ final class RangeScene {
         root.addChild(iblRoot)
         root.addChild(effects)
         root.addChild(ball)
+        root.addChild(club.root)
 
         await addSky()
         let grass = await loadGrass()
@@ -41,8 +43,13 @@ final class RangeScene {
         applyLighting(to: root)
     }
 
+    nonisolated static var ballRestPosition: SIMD3<Float> {
+        teePosition + [0, groundY + ballRadius, 0]
+    }
+
     func resetBall() {
-        ball.position = Self.teePosition + [0, Self.groundY + Self.ballRadius, 0]
+        ball.components.remove(BallFlightComponent.self)
+        ball.position = Self.ballRestPosition
         ball.scale = .one
     }
 

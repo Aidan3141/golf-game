@@ -8,6 +8,8 @@ struct GolfGameApp: App {
     init() {
         BallFlightComponent.registerComponent()
         BallFlightSystem.registerSystem()
+        ClubSwingComponent.registerComponent()
+        ClubSwingSystem.registerSystem()
     }
 
     var body: some Scene {

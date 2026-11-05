@@ -16,6 +16,7 @@
 		294A9AA60B24E27E8986D60A /* SwingSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E1A303088E125FD2A7FE63 /* SwingSource.swift */; };
 		4A8BBBD309077C9E4EC26309 /* GolfGame Watch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 2CC4CACE9F42E379F574F0B3 /* GolfGame Watch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4CB92CD1A7A10A79805A6A6D /* SwingKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5B39E18C1256D07B652E0CA2 /* SwingKit */; };
+		7D27A2EA4EEBA7018F381941 /* ClubSwing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8969E1D9A293F11C22CF993A /* ClubSwing.swift */; };
 		9309496F7DD34313DDFAEC8B /* BallFlightSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3CD6BF1FB87A541E10274F1 /* BallFlightSystem.swift */; };
 		A3BBBCA9D0631A6F6BE8A093 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13CEE87EB5BEA1FEB10D8093 /* ContentView.swift */; };
 		AE3F91506FA28348CD41E2D7 /* grass_nor.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 058F9DD72DAC2CA3A0AFE854 /* grass_nor.jpg */; };
@@ -69,6 +70,7 @@
 		6066669BB0A652EA632193A9 /* grass_diff.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = grass_diff.jpg; sourceTree = "<group>"; };
 		634E8C72BAB5EE536CD4364C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		80E1A303088E125FD2A7FE63 /* SwingSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingSource.swift; sourceTree = "<group>"; };
+		8969E1D9A293F11C22CF993A /* ClubSwing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubSwing.swift; sourceTree = "<group>"; };
 		9D56BF70B404880C37CB9CE3 /* RangeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RangeView.swift; sourceTree = "<group>"; };
 		9E4A862265B0A879407F5016 /* GolfGameWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfGameWatchApp.swift; sourceTree = "<group>"; };
 		A8329AB5DD72E1794D97E187 /* TestSwingSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSwingSettings.swift; sourceTree = "<group>"; };
@@ -183,6 +185,7 @@
 			children = (
 				D8653E96DDEF669EE82BEF30 /* AppModel.swift */,
 				C3CD6BF1FB87A541E10274F1 /* BallFlightSystem.swift */,
+				8969E1D9A293F11C22CF993A /* ClubSwing.swift */,
 				D651FAC98A7B599BF438465E /* ContentView.swift */,
 				38A47DF3B0DBC6FF1024DE70 /* GolfGameApp.swift */,
 				634E8C72BAB5EE536CD4364C /* Info.plist */,
@@ -345,6 +348,7 @@
 			files = (
 				C902CB6874DD5723F1079187 /* AppModel.swift in Sources */,
 				9309496F7DD34313DDFAEC8B /* BallFlightSystem.swift in Sources */,
+				7D27A2EA4EEBA7018F381941 /* ClubSwing.swift in Sources */,
 				1A0AA9DA830B235CD8637A16 /* ContentView.swift in Sources */,
 				ECF99E922A9BF3C49805B974 /* GolfGameApp.swift in Sources */,
 				C399280822587B47E57922F4 /* RangeScene.swift in Sources */,
