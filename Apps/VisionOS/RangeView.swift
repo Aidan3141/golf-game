@@ -1,23 +1,40 @@
+import Foundation
 import RealityKit
 import SwiftUI
 
-// placeholder range: green ground + a ball at your feet. real scene in M2
 struct RangeView: View {
+    @Environment(AppModel.self) private var appModel
+    @State private var scene: RangeScene?
+    @State private var playedShotID: UUID?
+
     var body: some View {
         RealityView { content in
-            let ground = ModelEntity(
-                mesh: .generatePlane(width: 40, depth: 200),
-                materials: [SimpleMaterial(color: .init(red: 0.25, green: 0.55, blue: 0.2, alpha: 1), isMetallic: false)]
-            )
-            ground.position = [0, 0, -95]
-            content.add(ground)
-
-            let ball = ModelEntity(
-                mesh: .generateSphere(radius: 0.0214),  // real golf ball radius in m
-                materials: [SimpleMaterial(color: .white, isMetallic: false)]
-            )
-            ball.position = [0, 0.0214, -0.5]
-            content.add(ball)
+            let s = await RangeScene()
+            content.add(s.root)
+            scene = s
+            #if DEBUG
+            // `-sideView`: turn the world so the sim camera sees the shot from the side
+            if ProcessInfo.processInfo.arguments.contains("-sideView") {
+                s.root.orientation = simd_quatf(angle: .pi * 0.25, axis: [0, 1, 0])
+                s.root.position = [60, -10, 40]
+            }
+            #endif
+            // shot may have come in while scene was loading
+            if let shot = appModel.lastShot {
+                play(shot, in: s)
+            }
         }
+        .onChange(of: appModel.lastShot) { _, shot in
+            guard let shot, let scene else { return }
+            play(shot, in: scene)
+        }
+    }
+
+    private func play(_ shot: Shot, in scene: RangeScene) {
+        guard shot.id != playedShotID else { return }
+        playedShotID = shot.id
+        scene.clearEffects()
+        scene.resetBall()
+        scene.ball.components.set(BallFlightComponent(flight: shot.flight, effects: scene.effects))
     }
 }

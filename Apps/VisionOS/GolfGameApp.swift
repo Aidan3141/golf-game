@@ -2,13 +2,20 @@ import SwiftUI
 
 @main
 struct GolfGameApp: App {
+    static let mainWindowID = "main"
     @State private var appModel = AppModel()
 
+    init() {
+        BallFlightComponent.registerComponent()
+        BallFlightSystem.registerSystem()
+    }
+
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: Self.mainWindowID) {
             ContentView()
                 .environment(appModel)
         }
+        .defaultSize(width: 560, height: 820)
 
         ImmersiveSpace(id: AppModel.rangeSpaceID) {
             RangeView()
