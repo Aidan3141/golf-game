@@ -179,6 +179,7 @@ struct ContentView: View {
             }
             Text("\(capture.swingCount) swings · \(capture.source) \(Int(capture.accelHz))/\(Int(capture.motionHz)) Hz")
             Text(connectivity.pendingTransfers > 0 ? "sending \(connectivity.pendingTransfers)…" : "all sent")
+            Text(connectivity.clubStats)
             if let e = capture.errorText ?? connectivity.lastError {
                 Text(e).foregroundStyle(.red)
             }

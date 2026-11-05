@@ -63,12 +63,12 @@ struct ContentView: View {
                     Toggle("Flip left/right", isOn: $appModel.flipCurve)
                     SliderRow("Curve strength", value: $appModel.curveStrength, in: 0...2, format: "%.1fx")
                     if appModel.network.clubUpdates > 0 {
-                        LabeledContent("Live club", value: "\(appModel.network.clubUpdates) updates")
+                        LabeledContent("Live club", value: appModel.network.clubStats)
                     }
                 }
 
                 Section {
-                    Toggle("Address check (hands)", isOn: $appModel.addressCheckOn)
+                    Toggle("Hand tracking (grip snap + address check)", isOn: $appModel.addressCheckOn)
                     if appModel.addressCheckOn {
                         LabeledContent("Hands", value: appModel.rangeState == .open ? appModel.addressCheck.status.label : "open the range")
                     }

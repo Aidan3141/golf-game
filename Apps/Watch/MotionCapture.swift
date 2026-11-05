@@ -42,7 +42,7 @@ final class MotionCapture {
     // live club angle for the headset, throttled to ~25hz while ur addressed/swinging
     @ObservationIgnored var onClubAngle: ((Double, SwingPhase) -> Void)?
     @ObservationIgnored private var lastAngleSent = 0.0
-    static let angleInterval = 1.0 / 25
+    static let angleInterval = 1.0 / 30  // offered rate, the ack gate decides what actually goes
 
     // raw data around each swing, ~1-2s later once batched data lands (if saveSwingData)
     @ObservationIgnored var onSwingData: ((SwingRecording) -> Void)?

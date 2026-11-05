@@ -41,6 +41,13 @@ struct PuttingView: View {
                 }
             }
         }
+        .task(id: scene == nil) {
+            guard let scene else { return }
+            await snapLoop(club: scene.club, root: scene.root)
+        }
+        .onChange(of: appModel.addressCheckOn, initial: true) { _, on in
+            if on { appModel.addressCheck.start() } else { appModel.addressCheck.stop() }
+        }
         .onChange(of: appModel.puttSetup) { _, setup in
             Task { await scene?.layout(setup, hand: appModel.handedness) }
         }
@@ -65,6 +72,25 @@ struct PuttingView: View {
                     if appModel.lastPutt?.id == p.id { scene.resetBall() }
                 }
             }
+        }
+    }
+}
+
+extension PuttingView {
+
+    // while hands are good + still at address, line the grip up w/ them
+    private func snapLoop(club: ClubRig, root: Entity) async {
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(300))
+            let check = appModel.addressCheck
+            guard appModel.addressCheckOn else {
+                club.clearSnap()
+                continue
+            }
+            let swinging = appModel.liveClub.isFresh && abs(appModel.liveClub.watchAngle) > 0.15
+            guard !swinging, let mid = check.handsMid, let since = check.goodSince,
+                  ProcessInfo.processInfo.systemUptime - since > 0.5 else { continue }
+            club.snapGrip(toHands: root.convert(position: mid, from: nil))
         }
     }
 }

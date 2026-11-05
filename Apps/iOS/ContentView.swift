@@ -18,6 +18,8 @@ struct ContentView: View {
                     if sender.state.isConnected {
                         LabeledContent("Mode", value: sender.mode == .putt ? "putting" : "full swing")
                     }
+                    LabeledContent("Live club (watch → phone)", value: connectivity.clubStats)
+                        .font(.footnote)
                     Button("Send Test Swing", systemImage: "paperplane") {
                         sender.send(SwingResult.sample.fresh())
                     }
@@ -100,7 +102,7 @@ struct ContentView: View {
         func ramp(_ from: Double, _ to: Double, _ secs: Double, _ phase: SwingPhase) async {
             let n = max(1, Int(secs * 25))
             for i in 1...n {
-                sender.send(clubAngle: from + (to - from) * Double(i) / Double(n), phase: phase)
+                sender.send(clubAngle: from + (to - from) * Double(i) / Double(n), phase: phase, watchSentAt: .now)
                 try? await Task.sleep(for: .milliseconds(40))
             }
         }

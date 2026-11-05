@@ -32,8 +32,10 @@ struct GolfGamePhoneApp: App {
                     sender.onMode = { [connectivity] mode in
                         connectivity.send(mode: mode)
                     }
-                    connectivity.onClub = { [sender] angle, phase in
-                        sender.send(clubAngle: angle, phase: phase)
+                    connectivity.onClub = { [sender] angle, phase, sentAt in
+                        // already too old to be useful, dont bother the headset
+                        guard Date.now.timeIntervalSince(sentAt) < 1 else { return }
+                        sender.send(clubAngle: angle, phase: phase, watchSentAt: sentAt)
                     }
                     connectivity.onSwing = { [sender, feed, container] swing, sentAt in
                         sender.send(swing)  // headset first, everything else can wait

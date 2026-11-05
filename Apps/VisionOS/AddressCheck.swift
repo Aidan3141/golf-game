@@ -28,6 +28,9 @@ final class AddressCheck {
     }
 
     private(set) var status = Status.off
+    // world space, only when both hands are tracked. not observed, read by the club snapper
+    @ObservationIgnored private(set) var handsMid: SIMD3<Float>?
+    @ObservationIgnored private(set) var goodSince: Double?
     @ObservationIgnored private var session: ARKitSession?
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var left: SIMD3<Float>?
@@ -67,6 +70,8 @@ final class AddressCheck {
         session = nil
         left = nil
         right = nil
+        handsMid = nil
+        goodSince = nil
         status = .off
     }
 
@@ -77,7 +82,18 @@ final class AddressCheck {
             p = SIMD3(m.columns.3.x, m.columns.3.y, m.columns.3.z)
         }
         if anchor.chirality == .left { left = p } else { right = p }
-        status = Self.evaluate(left: left, right: right)
+        let new = Self.evaluate(left: left, right: right)
+        if new != status { status = new }  // only poke observers when it actually changes
+        if let l = left, let r = right {
+            handsMid = (l + r) / 2
+        } else {
+            handsMid = nil
+        }
+        if new == .good {
+            goodSince = goodSince ?? ProcessInfo.processInfo.systemUptime
+        } else {
+            goodSince = nil
+        }
     }
 
     // world origin = where u stood when the range opened, so x ~ ur centerline

@@ -12,6 +12,13 @@ final class NetworkSwingReceiver: SwingSource {
     private(set) var lastLatency: Double?  // phone send -> here, secs
 
     @ObservationIgnored var onClub: ((Double, SwingPhase) -> Void)?
+    // live club debug, refreshed ~1/s
+    private(set) var clubStats = "—"
+    @ObservationIgnored private var clubWindowStart = 0.0
+    @ObservationIgnored private var clubInWindow = 0
+    @ObservationIgnored private var clubDropped = 0
+    @ObservationIgnored private var ageAvg: Double?
+    @ObservationIgnored private var ageBaseline: Double?  // fastest delivery seen, soaks up clock skew
     // tell the phone (-> watch) what kind of swing to look for. resent on every new connection
     @ObservationIgnored var mode = SwingMode.full {
         didSet { if mode != oldValue { sendMode() } }
@@ -133,7 +140,24 @@ final class NetworkSwingReceiver: SwingSource {
         case .club(let angle, let phase):
             clubCount &+= 1
             if clubCount % 25 == 1 { clubUpdates = clubCount }
-            onClub?(angle, phase)
+            // age vs the watch clock. raw age has skew in it, so judge lag vs the best weve seen
+            let age = Date.now.timeIntervalSince(env.sentAt)
+            ageBaseline = min((ageBaseline ?? age) + 0.0005, age)
+            ageAvg = ageAvg.map { $0 * 0.8 + age * 0.2 } ?? age
+            let lag = age - (ageBaseline ?? age)
+            if lag > 0.35 {
+                clubDropped += 1  // stale, playing it would just be the 90s-late jitter again
+            } else {
+                onClub?(angle, phase)
+            }
+            clubInWindow += 1
+            let now = ProcessInfo.processInfo.systemUptime
+            if now - clubWindowStart >= 1 {
+                clubStats = String(format: "%.0f/s · %.0f ms old · %d stale", Double(clubInWindow) / (now - clubWindowStart),
+                                   (ageAvg ?? 0) * 1000, clubDropped)
+                clubWindowStart = now
+                clubInWindow = 0
+            }
         case .ping, .mode:
             break
         }

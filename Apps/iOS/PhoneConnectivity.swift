@@ -15,7 +15,11 @@ final class PhoneConnectivity: NSObject {
     @ObservationIgnored private let session: WCSession? = WCSession.isSupported() ? .default : nil
     @ObservationIgnored var onReceive: (() -> Void)?
     @ObservationIgnored var onSwing: ((SwingResult, Date) -> Void)?  // swing + when watch sent it
-    @ObservationIgnored var onClub: ((Double, SwingPhase) -> Void)?  // live club angle stream
+    @ObservationIgnored var onClub: ((Double, SwingPhase, Date) -> Void)?  // live club angle + when the watch sent it
+    private(set) var clubStats = "—"
+    @ObservationIgnored private var clubInWindow = 0
+    @ObservationIgnored private var clubWindowStart = 0.0
+    @ObservationIgnored private var clubAgeAvg: Double?
 
     override init() {
         super.init()
@@ -29,6 +33,18 @@ final class PhoneConnectivity: NSObject {
         try? session.updateApplicationContext(["mode": mode.rawValue])
         if session.isReachable {
             session.sendMessage(["mode": mode.rawValue], replyHandler: nil, errorHandler: nil)
+        }
+    }
+
+    private func clubArrived(_ sentAt: Date) {
+        let age = Date.now.timeIntervalSince(sentAt)
+        clubAgeAvg = clubAgeAvg.map { $0 * 0.8 + age * 0.2 } ?? age
+        clubInWindow += 1
+        let now = ProcessInfo.processInfo.systemUptime
+        if now - clubWindowStart >= 1 {
+            clubStats = String(format: "%.0f/s · %.0f ms old", Double(clubInWindow) / (now - clubWindowStart), (clubAgeAvg ?? 0) * 1000)
+            clubWindowStart = now
+            clubInWindow = 0
         }
     }
 
@@ -65,6 +81,13 @@ extension PhoneConnectivity: WCSessionDelegate {
         handle(message)
     }
 
+    // club msgs want a reply, thats the watchs ack gate. reply first, then do stuff
+    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any],
+                             replyHandler: @escaping ([String: Any]) -> Void) {
+        replyHandler([:])
+        handle(message)
+    }
+
     nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         handle(userInfo)
     }
@@ -72,7 +95,11 @@ extension PhoneConnectivity: WCSessionDelegate {
     nonisolated private func handle(_ dict: [String: Any]) {
         if let angle = dict["club"] as? Double {
             let phase = (dict["ph"] as? String).flatMap(SwingPhase.init(rawValue:)) ?? .idle
-            Task { @MainActor in self.onClub?(angle, phase) }
+            let sentAt = (dict["ts"] as? Double).map(Date.init(timeIntervalSince1970:)) ?? .now
+            Task { @MainActor in
+                self.clubArrived(sentAt)
+                self.onClub?(angle, phase, sentAt)
+            }
             return
         }
         guard let data = dict["env"] as? Data,

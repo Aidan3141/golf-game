@@ -14,6 +14,27 @@ final class ClubRig {
     static let hands: Float = 0.38  // where grip starts along the lever
     private var lastSetup: (Handedness, SIMD3<Float>, Bool)?
 
+    private(set) var snappedHands: SIMD3<Float>?
+
+    // re aim the club so the grip goes thru ur real hands (scene local coords). pivot sits a bit
+    // past the hands on the ball->hands line so the swing still rotates around ur chest-ish
+    func snapGrip(toHands h: SIMD3<Float>) {
+        guard let (hand, ball, putter) = lastSetup else { return }
+        if let prev = snappedHands, simd_distance(prev, h) < 0.03 { return }  // no tiny jitter re-snaps
+        let head = ball + [0, 0, 0.036]
+        let dir = simd_normalize(h - head)
+        // grip top ~ hands, so pivot is hands + the arm bit of the lever
+        let pivot = h + dir * Self.hands
+        setUp(for: hand, ball: ball, putter: putter, pivot: pivot)
+        snappedHands = h
+    }
+
+    func clearSnap() {
+        guard snappedHands != nil, let (hand, ball, putter) = lastSetup else { return }
+        snappedHands = nil
+        setUp(for: hand, ball: ball, putter: putter)
+    }
+
     // same ball + club, just flip hands
     func setHand(_ hand: Handedness) {
         if let (_, ball, putter) = lastSetup {
@@ -38,10 +59,11 @@ final class ClubRig {
 
     // golfer stands left of the ball (rh) or right (lh), chest ~1.1m up.
     // putter = closer to the ball (eyes over it), flat blade head
-    func setUp(for hand: Handedness, ball: SIMD3<Float> = RangeScene.ballRestPosition, putter: Bool = false) {
+    func setUp(for hand: Handedness, ball: SIMD3<Float> = RangeScene.ballRestPosition, putter: Bool = false,
+               pivot pivotOverride: SIMD3<Float>? = nil) {
         let side: Float = hand == .right ? -1 : 1
         let head = ball + [0, 0, 0.036]  // face sits just behind the ball
-        let pivot = SIMD3<Float>(ball.x + side * (putter ? 0.32 : 0.55), putter ? 1.05 : 1.1, ball.z)
+        let pivot = pivotOverride ?? SIMD3<Float>(ball.x + side * (putter ? 0.32 : 0.55), putter ? 1.05 : 1.1, ball.z)
         let toHead = head - pivot
         let length = simd_length(toHead)
         let d = toHead / length

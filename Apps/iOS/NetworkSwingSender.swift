@@ -48,8 +48,9 @@ final class NetworkSwingSender {
         send(MessageEnvelope(payload: .swing(swing)))
     }
 
-    func send(clubAngle: Double, phase: SwingPhase) {
-        send(MessageEnvelope(payload: .club(angle: clubAngle, phase: phase)))
+    // keep the watchs send time so the headset knows how stale it is
+    func send(clubAngle: Double, phase: SwingPhase, watchSentAt: Date) {
+        send(MessageEnvelope(payload: .club(angle: clubAngle, phase: phase), sentAt: watchSentAt))
     }
 
     private func send(_ env: MessageEnvelope) {

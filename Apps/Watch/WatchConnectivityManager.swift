@@ -48,10 +48,52 @@ final class WatchConnectivityManager: NSObject {
         }
     }
 
-    // fire n forget, only if the phone app is up. dropped ones dont matter, next one is 40ms later
+    // club stream debug numbers, refreshed ~1/s so the ui doesnt redraw at 30hz
+    private(set) var clubStats = "—"
+    @ObservationIgnored private var inFlightSince: Double?
+    @ObservationIgnored private var sentCount = 0
+    @ObservationIgnored private var skipped = 0
+    @ObservationIgnored private var rttAvg: Double?
+    @ObservationIgnored private var statsWindowStart = 0.0
+    @ObservationIgnored private var sentInWindow = 0
+
+    // ack gated: only one club msg in the air at a time. if the last one hasnt come back we
+    // skip this angle, the next fresh one goes instead. so a queue can never build up
+    // (fire n forget at 25hz piled up + showed up ~90s late)
     func send(clubAngle: Double, phase: SwingPhase) {
         guard let session, session.isReachable else { return }
-        session.sendMessage(["club": clubAngle, "ph": phase.rawValue], replyHandler: nil, errorHandler: nil)
+        let now = ProcessInfo.processInfo.systemUptime
+        if let since = inFlightSince, now - since < 0.5 {
+            skipped += 1
+            return
+        }
+        inFlightSince = now
+        sentCount += 1
+        sentInWindow += 1
+        let msg: [String: Any] = [
+            "club": clubAngle, "ph": phase.rawValue,
+            "ts": Date.now.timeIntervalSince1970, "seq": sentCount,
+        ]
+        session.sendMessage(msg, replyHandler: { _ in
+            Task { @MainActor in self.acked(sentAt: now) }
+        }, errorHandler: { _ in
+            Task { @MainActor in self.inFlightSince = nil }
+        })
+        updateStats(now)
+    }
+
+    private func acked(sentAt: Double) {
+        let rtt = ProcessInfo.processInfo.systemUptime - sentAt
+        rttAvg = rttAvg.map { $0 * 0.8 + rtt * 0.2 } ?? rtt
+        inFlightSince = nil
+    }
+
+    private func updateStats(_ now: Double) {
+        guard now - statsWindowStart >= 1 else { return }
+        let rate = Double(sentInWindow) / (now - statsWindowStart)
+        clubStats = String(format: "club %.0f/s · rtt %.0fms · skip %d", rate, (rttAvg ?? 0) * 1000, skipped)
+        statsWindowStart = now
+        sentInWindow = 0
     }
 
     private func refresh() {

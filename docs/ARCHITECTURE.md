@@ -17,7 +17,7 @@ sends small SwingResult     debug charts                  coaching cards
 - iphone → vision pro: Network framework (NWListener on avp, NWBrowser on phone, bonjour `_golfgame._tcp`) w/ `includePeerToPeer` so it rides awdl and works w/o a shared wifi (campus wifi blocks bonjour). picked over multipeer bc its the modern api, plays nicer w/ swift 6, and does the same peer to peer trick. avp side is just a `SwingSource`, so swapping transports only touches `NetworkSwingReceiver` / `NetworkSwingSender`
 - wire format: `MessageFramer` = 4 byte big endian length + json `MessageEnvelope`. `FrameDecoder` reassembles from a tcp byte stream. phone sends `hello` on connect + `ping` every 2s
 - watch → phone: `sendMessage(["env": envelope])` when reachable, `transferUserInfo` as backup. sent the instant impact is detected, raw data follows separately
-- live club: watch streams `club(angle, phase)` ~25hz while addressed/swinging (sendMessage, fire n forget), phone forwards, avp `LiveClubSystem` follows it w/ light smoothing. angle = rotation from the address pose along the swing axis (`SwingAngleTracker`, body frame so facing doesnt matter). mapped to the lever: x1.45 on the backswing side, x2.6 on the follow thru side
+- live club: watch streams `club(angle, phase)` while addressed/swinging. ACK GATED: sendMessage w/ a replyHandler, only one in the air, skip angles while waiting (fire n forget at 25hz backed up + played ~90s late). each msg carries the watch send time, phone keeps it as the envelope sentAt, avp drops anything >0.35s slower than the fastest delivery its seen (baseline soaks up clock skew). stats on all 3 screens: watch rate/rtt/skips, phone rate/age, avp rate/age/stale. phone forwards, avp `LiveClubSystem` follows it w/ light smoothing. angle = rotation from the address pose along the swing axis (`SwingAngleTracker`, body frame so facing doesnt matter). mapped to the lever: x1.45 on the backswing side, x2.6 on the follow thru side
 - phone relay only runs w/ the app open (idle timer off). background relay = later maybe
 
 ## targets
@@ -96,6 +96,7 @@ debug launch args (Debug builds only): iphone `-autoTestSwing` sends a sample on
 
 - `GameAudio` loads the synth wavs once. impact plays at the tee when the ball launches, landing thud is spatial at the landing spot (boosted, its far), wind + birds ambience loops all around
 - `TempoTrainer` (avp, practice section): 3 ticks over ur backswing time then a tock 1 beat later = perfect 3:1, repeats w/ a 2s gap
+- hands: both spaces use `upperLimbVisibility(.visible)`. w/ hand tracking on, once ur hands are good + still for 0.5s (+ not mid swing) `ClubRig.snapGrip` re aims the lever so the grip goes thru ur hands (pivot = hands + 0.38m further along ball->hands). re-snaps only if hands move >3cm
 - `AddressCheck` (avp, toggle, off by default): arkit `HandTrackingProvider`, only checks wrists at address: together (<12cm), height 0.55-1.15m, roughly in front of u. never tracks the fast swing. not testable in the sim
 - watch: impact tap is a double "success" when tempo is in the zone, plain strong tap otherwise. optional "tempo taps" plays the same 3:1 rhythm as haptics right after address
 

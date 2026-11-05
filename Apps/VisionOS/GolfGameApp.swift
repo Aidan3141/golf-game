@@ -30,6 +30,7 @@ struct GolfGameApp: App {
                 .onDisappear { appModel.rangeState = .closed }
         }
         .immersionStyle(selection: .constant(.full), in: .full)
+        .upperLimbVisibility(.visible)  // see ur own hands on the club
 
         // putting is mixed, green sits on ur real floor
         ImmersiveSpace(id: AppModel.puttSpaceID) {
@@ -39,5 +40,6 @@ struct GolfGameApp: App {
                 .onDisappear { appModel.puttState = .closed }
         }
         .immersionStyle(selection: .constant(.mixed), in: .mixed)
+        .upperLimbVisibility(.visible)
     }
 }
