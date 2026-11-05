@@ -51,7 +51,10 @@ docs/                  this + assets list
 
 coords in swingkit: x right of target, y up, z downrange (meters). vision app maps to realitykit w/ downrange = -z
 
-coming: swing detector (M4), coaching tips (M6)
+- `SwingDetector` (M4) feed it motion frames at any rate. works on rotation magnitude so wrist/hand dont matter. idle -> address (still 0.5s) -> backswing -> impact (peak >= 9 rad/s, confirmed once it drops) -> follow thru (1.2s refractory). at impact it looks back in a 4s buffer: top = slowest point 0.1-0.8s before impact, backswing hump before that, takeaway = where it was last still. rejects no backswing / no clear top / weird timing. all knobs in `SwingDetectorConfig`, tuned on 10 real swings in `Tests/SwingKitTests/Fixtures` (803hz accel / 201hz motion, ultra 4 left wrist)
+- smoothness = backswing jitter (raw vs 80ms avg) / hump speed. pathBias is 0 for now, no reliable signal yet
+
+coming: coaching tips (M6)
 
 ## vision pro app
 
@@ -67,13 +70,14 @@ debug launch args (Debug builds only): `-autoShot` opens range + hits, `-hideWin
 
 - `WorkoutManager` runs an `HKWorkoutSession` (golf). only to keep the app alive + unlock batched sensors, no builder so nothing saved to health
 - `MotionCapture` streams `CMBatchedSensorManager` accel + device motion into ring buffers (~10s). falls back to `CMMotionManager` @ 100hz if batched isnt supported. record = 3-2-1 haptic countdown, 3s window, waits for the ~1s batch lag, slices by timestamp (secs since boot)
+- live detection runs on a separate 100hz `CMMotionManager` stream (batched lands ~1s late, too laggy for the impact tap). light tap at address, strong at impact. each detected swing auto saves 2.5s before + 0.8s after impact as a recording (toggle)
 - `WatchConnectivityManager` writes `SwingRecording` json + `transferFile`s it to the phone
 
 ## iphone app (M3)
 
 - `PhoneConnectivity` gets files, moves them into Documents/Recordings before the delegate returns
 - `RecordingStore` lists/loads/deletes them
-- `RecordingDetailView` swift charts of accel + rotation (magnitude or x/y/z) + share button so recordings can be airdropped to the mac
+- `RecordingDetailView` swift charts of accel + rotation (magnitude or x/y/z), reruns the detector and draws takeaway/top/impact lines + tempo, share button so recordings can be airdropped to the mac
 
 ## 3d content
 
