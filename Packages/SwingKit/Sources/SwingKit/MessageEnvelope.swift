@@ -4,6 +4,7 @@ import Foundation
 public enum MessagePayload: Codable, Sendable, Hashable {
     case swing(SwingResult)
     case ping
+    case hello(device: String)  // first thing sent on a new connection
 }
 
 public struct MessageEnvelope: Codable, Sendable, Hashable {
