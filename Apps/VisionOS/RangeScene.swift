@@ -17,6 +17,7 @@ final class RangeScene {
     let ball: ModelEntity
     let effects = Entity()  // trails + markers, cleared each shot
     let club = ClubRig()
+    private(set) var trainer: TempoTrainer!
     private let iblRoot = Entity()
 
     init() async {
@@ -32,6 +33,9 @@ final class RangeScene {
         root.addChild(ball)
         root.addChild(club.root)
 
+        trainer = TempoTrainer(parent: root)
+        await GameAudio.shared.load()
+        addAmbience()
         await addSky()
         let grass = await loadGrass()
         addGround(grass)
@@ -76,6 +80,15 @@ final class RangeScene {
 
     func clearEffects() {
         effects.children.removeAll()
+    }
+
+    // wind + birds all around u
+    private func addAmbience() {
+        guard let a = GameAudio.shared.ambience else { return }
+        let e = Entity()
+        e.components.set(AmbientAudioComponent(gain: -14))
+        root.addChild(e)
+        e.playAudio(a)
     }
 
     // MARK: sky + lighting

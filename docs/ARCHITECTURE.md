@@ -92,6 +92,12 @@ debug launch args (Debug builds only): iphone `-autoTestSwing` sends a sample on
 - iphone: every real swing saved w/ swiftdata (`SwingRecord`, flat fields). `HistoryView` = tempo over time chart w/ the 3:1 line, stats, per day list. carry there is a straight shot estimate (phone doesnt know the avp curve calibration)
 - debug: iphone `-seedHistory` fake swings, `-openHistory` starts on history
 
+## polish (M7/M8)
+
+- `GameAudio` loads the synth wavs once. impact plays at the tee when the ball launches, landing thud is spatial at the landing spot (boosted, its far), wind + birds ambience loops all around
+- `TempoTrainer` (avp, practice section): 3 ticks over ur backswing time then a tock 1 beat later = perfect 3:1, repeats w/ a 2s gap
+- watch: impact tap is a double "success" when tempo is in the zone, plain strong tap otherwise. optional "tempo taps" plays the same 3:1 rhythm as haptics right after address
+
 ## 3d content
 
 xcode 27 visionOS template no longer makes a reality composer pro package, so the range is built in code from primitives + textures in `Apps/VisionOS/Resources`. see `ASSETS.md`

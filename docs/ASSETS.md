@@ -9,8 +9,14 @@ every 3d model / texture / hdri / sound in the project + its license. cc0 prefer
 | `Apps/VisionOS/Resources/grass_diff.jpg` | ground color (tinted green in code, its leafy/brown raw) | [Leafy Grass](https://polyhaven.com/a/leafy_grass) 2k | Charlotte Baglioni | CC0 |
 | `Apps/VisionOS/Resources/grass_nor.jpg` | ground normal map (gl) | Leafy Grass 1k | Charlotte Baglioni | CC0 |
 | `Apps/VisionOS/Resources/grass_rough.jpg` | ground roughness | Leafy Grass 1k | Charlotte Baglioni | CC0 |
+| `Apps/VisionOS/Resources/Sounds/impact.wav` | club hitting ball | made by `tools/make_sounds.py` (synth) | me | ours |
+| `Apps/VisionOS/Resources/Sounds/land.wav` | ball landing | `tools/make_sounds.py` | me | ours |
+| `Apps/VisionOS/Resources/Sounds/ambience.wav` | wind + birds loop | `tools/make_sounds.py` | me | ours |
+| `Apps/VisionOS/Resources/Sounds/tick.wav`, `tock.wav` | tempo trainer | `tools/make_sounds.py` | me | ours |
 
 ## swapping stuff
+
+- sounds: tweak + rerun `python3 tools/make_sounds.py` (needs numpy), or drop real recordings in w/ the same names. freesound.org has cc0 golf impacts if the synth ones sound fake
 
 - sky: drop a new equirect jpg/hdr in Resources w/ same names, or change names in `RangeScene.addSky()`
 - grass: same, tint + tile size in `RangeScene.grassMaterial(...)`

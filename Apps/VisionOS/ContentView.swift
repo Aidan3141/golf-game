@@ -38,6 +38,18 @@ struct ContentView: View {
                     }
                 }
 
+                Section {
+                    Toggle("Tempo trainer", isOn: $appModel.tempoTrainerOn)
+                    if appModel.tempoTrainerOn {
+                        SliderRow("Backswing", value: $appModel.trainerBackswing, in: 0.6...1.4, format: "%.2f s")
+                        Text("swing back on tick 1-2-3, hit on the tock. thats a perfect 3:1")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("practice")
+                }
+
                 Section("test swing") {
                     Picker("Hand", selection: $appModel.testSwing.handedness) {
                         Text("Right").tag(Handedness.right)

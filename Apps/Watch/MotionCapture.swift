@@ -47,6 +47,9 @@ final class MotionCapture {
     // raw data around each swing, ~1-2s later once batched data lands (if saveSwingData)
     @ObservationIgnored var onSwingData: ((SwingRecording) -> Void)?
     var saveSwingData = true
+    var tempoTaps = false
+    var tempoBackswing = 0.9  // s
+    @ObservationIgnored private var tapTask: Task<Void, Never>?
 
     @ObservationIgnored private var accelBuffer = RingBuffer<AccelSample>(capacity: 8_000)
     @ObservationIgnored private var motionBuffer = RingBuffer<MotionFrame>(capacity: 2_000)
@@ -129,10 +132,13 @@ final class MotionCapture {
             switch e {
             case .address:
                 device.play(.click)
+                if tempoTaps { playTempoTaps() }
             case .takeaway:
                 break
             case .impact(let result, let timeline):
-                device.play(.notification)
+                tapTask?.cancel()
+                // double tap = nice tempo, plain strong tap otherwise
+                device.play(Coach.tempoGood ~= result.tempoRatio ? .success : .notification)
                 swingCount += 1
                 if result.confidence >= detector.config.minConfidenceToSend {
                     lastSwing = result
@@ -145,6 +151,24 @@ final class MotionCapture {
             case .rejected(let reason, _):
                 lastRejected = reason
             }
+        }
+    }
+
+    // haptic metronome after address: tick tick tick (back), tap (impact) = 3:1
+    private func playTempoTaps() {
+        tapTask?.cancel()
+        let beat = tempoBackswing / 3
+        tapTask = Task {
+            try? await Task.sleep(for: .seconds(0.6))
+            let device = WKInterfaceDevice.current()
+            for _ in 0..<3 {
+                guard !Task.isCancelled else { return }
+                device.play(.click)
+                try? await Task.sleep(for: .seconds(beat))
+            }
+            try? await Task.sleep(for: .seconds(beat))
+            guard !Task.isCancelled else { return }
+            device.play(.directionUp)
         }
     }
 

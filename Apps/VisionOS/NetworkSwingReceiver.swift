@@ -12,7 +12,8 @@ final class NetworkSwingReceiver: SwingSource {
     private(set) var lastLatency: Double?  // phone send -> here, secs
 
     @ObservationIgnored var onClub: ((Double, SwingPhase) -> Void)?
-    private(set) var clubUpdates = 0
+    private(set) var clubUpdates = 0  // only bumped every 25 msgs so the window doesnt redraw at 25hz
+    @ObservationIgnored private var clubCount = 0
 
     let swings: AsyncStream<SwingResult>
     @ObservationIgnored private let continuation: AsyncStream<SwingResult>.Continuation
@@ -120,7 +121,8 @@ final class NetworkSwingReceiver: SwingSource {
         case .hello(let name):
             state = .connected(name)
         case .club(let angle, let phase):
-            clubUpdates &+= 1
+            clubCount &+= 1
+            if clubCount % 25 == 1 { clubUpdates = clubCount }
             onClub?(angle, phase)
         case .ping:
             break

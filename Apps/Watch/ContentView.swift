@@ -7,6 +7,7 @@ struct ContentView: View {
     @Environment(WatchConnectivityManager.self) private var connectivity
     @AppStorage("handedness") private var handedness = Handedness.right
     @AppStorage("saveSwingData") private var saveSwingData = true
+    @AppStorage("tempoTaps") private var tempoTaps = false
 
     var body: some View {
         ScrollView {
@@ -15,6 +16,8 @@ struct ContentView: View {
                     swingView
                     Divider()
                     recordButton
+                    Toggle("Tempo taps", isOn: $tempoTaps)
+                        .font(.footnote)
                     Toggle("Save swing data", isOn: $saveSwingData)
                         .font(.footnote)
                     status
@@ -32,6 +35,7 @@ struct ContentView: View {
         .onAppear {
             capture.handedness = handedness
             capture.saveSwingData = saveSwingData
+            capture.tempoTaps = tempoTaps
             capture.onImpact = { [connectivity] swing in
                 connectivity.send(swing: swing)
             }
@@ -44,6 +48,7 @@ struct ContentView: View {
         }
         .onChange(of: handedness) { _, h in capture.handedness = h }
         .onChange(of: saveSwingData) { _, v in capture.saveSwingData = v }
+        .onChange(of: tempoTaps) { _, v in capture.tempoTaps = v }
         .onChange(of: workout.isRunning) { _, running in
             if running { capture.startStreaming() } else { capture.stopStreaming() }
         }

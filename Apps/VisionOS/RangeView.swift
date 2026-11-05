@@ -39,6 +39,9 @@ struct RangeView: View {
             if let shot = appModel.lastShot {
                 play(shot, in: s)
             }
+            if appModel.tempoTrainerOn {
+                s.trainer.start(backswing: appModel.trainerBackswing)
+            }
         } update: { content, _ in
             if let card = content.entities.first(where: { $0.name == "card" }) {
                 placeCard(card)
@@ -51,6 +54,9 @@ struct RangeView: View {
                 }
             }
         }
+        .onChange(of: appModel.tempoTrainerOn) { _, _ in updateTrainer() }
+        .onChange(of: appModel.trainerBackswing) { _, _ in updateTrainer() }
+        .onDisappear { scene?.trainer.stop() }
         .onChange(of: appModel.viewMode) { _, mode in
             scene?.applyView(mode, hand: appModel.handedness)
         }
@@ -60,6 +66,15 @@ struct RangeView: View {
         .onChange(of: appModel.lastShot) { _, shot in
             guard let shot, let scene else { return }
             play(shot, in: scene)
+        }
+    }
+
+    private func updateTrainer() {
+        guard let scene else { return }
+        if appModel.tempoTrainerOn {
+            scene.trainer.start(backswing: appModel.trainerBackswing)
+        } else {
+            scene.trainer.stop()
         }
     }
 

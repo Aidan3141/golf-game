@@ -34,6 +34,10 @@ final class AppModel {
     static let fullCurveDegrees = 15.0  // this much roll (x strength) = full slice/hook
 
     let liveClub = LiveClub()
+
+    // tempo trainer metronome in the range
+    var tempoTrainerOn = false
+    var trainerBackswing = 0.9  // s, downswing = 1/3 of this
     var testSwing = TestSwingSettings()
     var tuning = FlightTuning.standard
     private(set) var lastShot: Shot?

@@ -15,6 +15,7 @@ struct BallFlightComponent: Component {
     var index = 0
     var lastTrailPoint: SIMD3<Float>?
     var landed = false
+    var launched = false
 
     init(flight: FlightResult, effects: Entity) {
         points = flight.points.map { RangeScene.scenePoint($0.position) }
@@ -58,12 +59,18 @@ struct BallFlightSystem: System {
 
             // systems run on main thread, text meshes need main actor
             MainActor.assumeIsolated {
+                if !f.launched {
+                    f.launched = true
+                    GameAudio.shared.play(GameAudio.shared.impact, at: f.points[0], in: f.effects, gain: 4)
+                }
                 if !f.landed {
                     addTrail(&f, to: pos, dist: dist)
                 }
 
                 if !f.landed && f.index >= f.landingIndex {
                     f.landed = true
+                    // boosted, its usually 150m away
+                    GameAudio.shared.play(GameAudio.shared.land, at: f.points[f.landingIndex], in: f.effects, gain: 18)
                     Self.addMarker(at: f.points[f.landingIndex], text: String(format: "%.0f carry", f.carryYards),
                                    color: .systemYellow, in: f.effects)
                 }
