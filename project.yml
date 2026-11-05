@@ -80,9 +80,18 @@ targets:
       base:
         PRODUCT_NAME: GolfGameWatch
         PRODUCT_BUNDLE_IDENTIFIER: com.aidanbulovic.golfgame.phone.watchkitapp
+    entitlements:
+      path: Apps/Watch/GolfGameWatch.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
     info:
       path: Apps/Watch/Info.plist
       properties:
         CFBundleDisplayName: Golf Game
         WKApplication: true
         WKCompanionAppBundleIdentifier: com.aidanbulovic.golfgame.phone
+        WKBackgroundModes: [workout-processing]  # keeps app + fast sensors alive during session
+        NSHealthShareUsageDescription: Golf Game doesnt read any health data.
+        NSHealthUpdateUsageDescription: Golf Game runs a golf workout session so it can read your swing at high speed. nothing gets saved to Health.
+        NSMotionUsageDescription: Golf Game uses motion sensors to measure your swing.

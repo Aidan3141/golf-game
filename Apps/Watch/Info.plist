@@ -20,8 +20,18 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Golf Game doesnt read any health data.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Golf Game runs a golf workout session so it can read your swing at high speed. nothing gets saved to Health.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Golf Game uses motion sensors to measure your swing.</string>
 	<key>WKApplication</key>
 	<true/>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+	</array>
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>com.aidanbulovic.golfgame.phone</string>
 </dict>
