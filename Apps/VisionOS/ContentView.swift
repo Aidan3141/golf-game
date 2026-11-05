@@ -39,6 +39,10 @@ struct ContentView: View {
                 }
 
                 Section {
+                    Toggle("Address check (hands)", isOn: $appModel.addressCheckOn)
+                    if appModel.addressCheckOn {
+                        LabeledContent("Hands", value: appModel.rangeState == .open ? appModel.addressCheck.status.label : "open the range")
+                    }
                     Toggle("Tempo trainer", isOn: $appModel.tempoTrainerOn)
                     if appModel.tempoTrainerOn {
                         SliderRow("Backswing", value: $appModel.trainerBackswing, in: 0.6...1.4, format: "%.2f s")

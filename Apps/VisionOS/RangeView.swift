@@ -56,7 +56,13 @@ struct RangeView: View {
         }
         .onChange(of: appModel.tempoTrainerOn) { _, _ in updateTrainer() }
         .onChange(of: appModel.trainerBackswing) { _, _ in updateTrainer() }
-        .onDisappear { scene?.trainer.stop() }
+        .onDisappear {
+            scene?.trainer.stop()
+            appModel.addressCheck.stop()
+        }
+        .onChange(of: appModel.addressCheckOn, initial: true) { _, on in
+            if on { appModel.addressCheck.start() } else { appModel.addressCheck.stop() }
+        }
         .onChange(of: appModel.viewMode) { _, mode in
             scene?.applyView(mode, hand: appModel.handedness)
         }

@@ -24,6 +24,8 @@
 	<array>
 		<string>_golfgame._tcp</string>
 	</array>
+	<key>NSHandsTrackingUsageDescription</key>
+	<string>Golf Game checks ur hands are together + in front of u at address. it never tracks the fast swing.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Golf Game connects your iPhone and Vision Pro so your watch swings show up in the headset.</string>
 	<key>UIApplicationSceneManifest</key>

@@ -44,6 +44,7 @@ targets:
           UISceneConfigurations: {}
         NSLocalNetworkUsageDescription: Golf Game connects your iPhone and Vision Pro so your watch swings show up in the headset.
         NSBonjourServices: [_golfgame._tcp]
+        NSHandsTrackingUsageDescription: Golf Game checks ur hands are together + in front of u at address. it never tracks the fast swing.
 
   # iphone relay app, embeds the watch app
   GolfGame iPhone:

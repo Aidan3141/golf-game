@@ -96,6 +96,7 @@ debug launch args (Debug builds only): iphone `-autoTestSwing` sends a sample on
 
 - `GameAudio` loads the synth wavs once. impact plays at the tee when the ball launches, landing thud is spatial at the landing spot (boosted, its far), wind + birds ambience loops all around
 - `TempoTrainer` (avp, practice section): 3 ticks over ur backswing time then a tock 1 beat later = perfect 3:1, repeats w/ a 2s gap
+- `AddressCheck` (avp, toggle, off by default): arkit `HandTrackingProvider`, only checks wrists at address: together (<12cm), height 0.55-1.15m, roughly in front of u. never tracks the fast swing. not testable in the sim
 - watch: impact tap is a double "success" when tempo is in the zone, plain strong tap otherwise. optional "tempo taps" plays the same 3:1 rhythm as haptics right after address
 
 ## 3d content

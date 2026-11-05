@@ -34,6 +34,8 @@ final class AppModel {
     static let fullCurveDegrees = 15.0  // this much roll (x strength) = full slice/hook
 
     let liveClub = LiveClub()
+    let addressCheck = AddressCheck()
+    var addressCheckOn = false
 
     // tempo trainer metronome in the range
     var tempoTrainerOn = false
