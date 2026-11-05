@@ -41,7 +41,8 @@ final class WorkoutManager: NSObject {
     // watchos relaunches us after a crash/kill while a workout is live. grab that session
     // instead of starting a second one
     func recover() {
-        store.recoverActiveWorkoutSession { session, _ in
+        // healthkit calls back on its own queue, keep the closure off the main actor
+        store.recoverActiveWorkoutSession { @Sendable session, _ in
             guard let session else { return }
             Task { @MainActor in
                 session.delegate = self

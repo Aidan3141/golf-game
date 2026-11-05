@@ -40,7 +40,9 @@ final class WatchConnectivityManager: NSObject {
         guard let session, let data = try? MessageEnvelope(payload: .swing(swing)).encoded() else { return }
         let msg: [String: Any] = ["env": data]
         if session.isReachable {
-            session.sendMessage(msg, replyHandler: nil) { _ in
+            // @Sendable = not main actor. wc calls this on a background queue and a main actor
+            // closure there trips swift 6's isolation check + crashes the app
+            session.sendMessage(msg, replyHandler: nil) { @Sendable _ in
                 WCSession.default.transferUserInfo(["env": data])
             }
         } else {
@@ -74,9 +76,11 @@ final class WatchConnectivityManager: NSObject {
             "club": clubAngle, "ph": phase.rawValue,
             "ts": Date.now.timeIntervalSince1970, "seq": sentCount,
         ]
-        session.sendMessage(msg, replyHandler: { _ in
+        // both run on a wc background queue -> must be @Sendable (nonisolated), not main actor.
+        // without it the first reply crashed the watch (dispatch_assert_queue_fail)
+        session.sendMessage(msg, replyHandler: { @Sendable _ in
             Task { @MainActor in self.acked(sentAt: now) }
-        }, errorHandler: { _ in
+        }, errorHandler: { @Sendable _ in
             Task { @MainActor in self.inFlightSince = nil }
         })
         updateStats(now)
