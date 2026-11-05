@@ -29,11 +29,25 @@ final class MotionCapture {
     private(set) var lastRecording: SwingRecording?
     var errorText: String?
 
+    // live detection
+    private(set) var phase = SwingPhase.idle
+    private(set) var lastSwing: SwingResult?
+    private(set) var lastRejected: String?
+    private(set) var swingCount = 0
+    var handedness = Handedness.right {
+        didSet { detector.handedness = handedness }
+    }
+    // gets each detected swing + its raw data (if saveSwingData)
+    @ObservationIgnored var onSwing: ((SwingResult, SwingRecording?) -> Void)?
+    var saveSwingData = true
+
     @ObservationIgnored private var accelBuffer = RingBuffer<AccelSample>(capacity: 8_000)
     @ObservationIgnored private var motionBuffer = RingBuffer<MotionFrame>(capacity: 2_000)
     @ObservationIgnored private var batched: CMBatchedSensorManager?
     @ObservationIgnored private let fallback = CMMotionManager()
     @ObservationIgnored private var tasks: [Task<Void, Never>] = []
+    @ObservationIgnored private var detector = SwingDetector()
+    @ObservationIgnored private let live = CMMotionManager()
 
     var isBusy: Bool {
         switch recordState {
@@ -48,11 +62,14 @@ final class MotionCapture {
         guard !isStreaming else { return }
         accelBuffer.removeAll()
         motionBuffer.removeAll()
+        detector.reset()
+        phase = .idle
         if CMBatchedSensorManager.isAccelerometerSupported && CMBatchedSensorManager.isDeviceMotionSupported {
             startBatched()
         } else {
             startFallback()
         }
+        startLive()
         isStreaming = true
     }
 
@@ -64,7 +81,73 @@ final class MotionCapture {
         batched = nil
         fallback.stopAccelerometerUpdates()
         fallback.stopDeviceMotionUpdates()
+        live.stopDeviceMotionUpdates()
         isStreaming = false
+        phase = .idle
+    }
+
+    // MARK: live detection
+
+    // batched data lands ~1s late, too laggy for the impact tap. so detection runs on a
+    // separate 100hz device motion stream, timestamps share the same clock
+    private func startLive() {
+        live.deviceMotionUpdateInterval = 1 / 100
+        live.startDeviceMotionUpdates(to: .main) { [weak self] motion, _ in
+            guard let motion else { return }
+            let f = Self.frame(motion)
+            let g = AccelSample(
+                t: motion.timestamp,
+                x: motion.userAcceleration.x + motion.gravity.x,
+                y: motion.userAcceleration.y + motion.gravity.y,
+                z: motion.userAcceleration.z + motion.gravity.z
+            )
+            MainActor.assumeIsolated { self?.handleLive(f, accel: g) }
+        }
+    }
+
+    private func handleLive(_ f: MotionFrame, accel: AccelSample) {
+        // fallback mode shares this stream for the buffers
+        if source == "motionManager" {
+            motionBuffer.append(f)
+        }
+        detector.add(accel: [accel])
+        let events = detector.add(motion: [f])
+        phase = detector.phase
+        let device = WKInterfaceDevice.current()
+        for e in events {
+            switch e {
+            case .address:
+                device.play(.click)
+            case .takeaway:
+                break
+            case .impact(let result, let timeline):
+                device.play(.notification)
+                swingCount += 1
+                if result.confidence >= detector.config.minConfidenceToSend {
+                    lastSwing = result
+                    lastRejected = nil
+                } else {
+                    lastRejected = "not sure that was a swing"
+                }
+                Task { await self.deliver(result, timeline: timeline) }
+            case .rejected(let reason, _):
+                lastRejected = reason
+            }
+        }
+    }
+
+    // wait for the batched data around the swing, then hand it off
+    private func deliver(_ result: SwingResult, timeline: SwingTimeline) async {
+        guard saveSwingData, !isBusy else {
+            onSwing?(result, nil)
+            return
+        }
+        let start = timeline.impact - 2.5
+        let end = timeline.impact + 0.8
+        await waitForData(until: end)
+        let rec = slice(start: start, end: end, wallStart: Date.now.addingTimeInterval(start - ProcessInfo.processInfo.systemUptime),
+                        note: String(format: "auto, tempo %.2f, conf %.2f", result.tempoRatio, result.confidence))
+        onSwing?(result, rec)
     }
 
     // high rate, needs an active workout session. data shows up in ~1s batches
@@ -104,7 +187,6 @@ final class MotionCapture {
         source = "motionManager"
         let hz = 100.0
         fallback.accelerometerUpdateInterval = 1 / hz
-        fallback.deviceMotionUpdateInterval = 1 / hz
         accelHz = hz
         motionHz = hz
         fallback.startAccelerometerUpdates(to: .main) { [weak self] data, _ in
@@ -112,11 +194,7 @@ final class MotionCapture {
             let s = AccelSample(t: data.timestamp, x: data.acceleration.x, y: data.acceleration.y, z: data.acceleration.z)
             MainActor.assumeIsolated { self?.accelBuffer.append(s) }
         }
-        fallback.startDeviceMotionUpdates(to: .main) { [weak self] motion, _ in
-            guard let motion else { return }
-            let f = Self.frame(motion)
-            MainActor.assumeIsolated { self?.motionBuffer.append(f) }
-        }
+        // device motion comes from the live stream (see handleLive)
     }
 
     nonisolated private static func frame(_ m: CMDeviceMotion) -> MotionFrame {
@@ -133,7 +211,7 @@ final class MotionCapture {
     // MARK: recording
 
     // 3-2-1 taps, record 3s, wait for the batch to land, slice it out
-    func record(handedness: Handedness) async -> SwingRecording? {
+    func record() async -> SwingRecording? {
         guard isStreaming, !isBusy else { return nil }
         let device = WKInterfaceDevice.current()
 
@@ -152,7 +230,20 @@ final class MotionCapture {
         device.play(.stop)
 
         recordState = .saving
-        // batches lag ~1s, wait till both streams cover the window (or give up after 4s)
+        await waitForData(until: end)
+        guard let rec = slice(start: start, end: end, wallStart: wallStart, note: "manual") else {
+            recordState = .failed("no sensor data")
+            device.play(.failure)
+            return nil
+        }
+        lastRecording = rec
+        recordState = .saved
+        device.play(.success)
+        return rec
+    }
+
+    // batches lag ~1s, wait till both streams cover the window (or give up after 4s)
+    private func waitForData(until end: Double) async {
         let deadline = ProcessInfo.processInfo.systemUptime + 4
         while ProcessInfo.processInfo.systemUptime < deadline {
             let a = accelBuffer.elements.last?.t ?? 0
@@ -160,7 +251,9 @@ final class MotionCapture {
             if a >= end && m >= end { break }
             try? await Task.sleep(for: .milliseconds(200))
         }
+    }
 
+    private func slice(start: Double, end: Double, wallStart: Date, note: String) -> SwingRecording? {
         let accel = accelBuffer.elements
             .filter { $0.t >= start && $0.t <= end }
             .map { AccelSample(t: $0.t - start, x: $0.x, y: $0.y, z: $0.z) }
@@ -171,27 +264,18 @@ final class MotionCapture {
                 f.t -= start
                 return f
             }
-
-        guard !accel.isEmpty || !motion.isEmpty else {
-            recordState = .failed("no sensor data")
-            device.play(.failure)
-            return nil
-        }
-
-        let rec = SwingRecording(
+        guard !accel.isEmpty || !motion.isEmpty else { return nil }
+        return SwingRecording(
             startedAt: wallStart,
-            duration: Self.recordSeconds,
+            duration: end - start,
             handedness: handedness,
-            wrist: device.wristLocation == .left ? "left" : "right",
+            wrist: WKInterfaceDevice.current().wristLocation == .left ? "left" : "right",
             source: source,
             accelHz: accelHz,
             motionHz: motionHz,
             accel: accel,
-            motion: motion
+            motion: motion,
+            note: note
         )
-        lastRecording = rec
-        recordState = .saved
-        device.play(.success)
-        return rec
     }
 }

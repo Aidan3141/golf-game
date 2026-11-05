@@ -6,12 +6,17 @@ struct ContentView: View {
     @Environment(MotionCapture.self) private var capture
     @Environment(WatchConnectivityManager.self) private var connectivity
     @AppStorage("handedness") private var handedness = Handedness.right
+    @AppStorage("saveSwingData") private var saveSwingData = true
 
     var body: some View {
         ScrollView {
             VStack(spacing: 10) {
                 if workout.isRunning {
+                    swingView
+                    Divider()
                     recordButton
+                    Toggle("Save swing data", isOn: $saveSwingData)
+                        .font(.footnote)
                     status
                     Button("End Session", role: .destructive) {
                         capture.stopStreaming()
@@ -24,8 +29,69 @@ struct ContentView: View {
             }
             .padding(.horizontal, 4)
         }
+        .onAppear {
+            capture.handedness = handedness
+            capture.saveSwingData = saveSwingData
+            capture.onSwing = { [connectivity] _, rec in
+                // M5 sends the SwingResult on to the vision pro, for now just the raw data
+                if let rec { connectivity.send(rec) }
+            }
+        }
+        .onChange(of: handedness) { _, h in capture.handedness = h }
+        .onChange(of: saveSwingData) { _, v in capture.saveSwingData = v }
         .onChange(of: workout.isRunning) { _, running in
             if running { capture.startStreaming() } else { capture.stopStreaming() }
+        }
+    }
+
+    // big tempo readout from the last detected swing
+    private var swingView: some View {
+        VStack(spacing: 4) {
+            Text(phaseText)
+                .font(.headline)
+                .foregroundStyle(phaseColor)
+            if let s = capture.lastSwing {
+                Text(String(format: "%.1f : 1", s.tempoRatio))
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .foregroundStyle(tempoColor(s.tempoRatio))
+                Text(String(format: "back %.2fs · down %.2fs", s.backswingDuration, s.downswingDuration))
+                    .font(.footnote)
+                Text(String(format: "%.0f rad/s · smooth %.0f%%", s.peakWristAngularVelocity, s.smoothnessScore * 100))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("take a swing")
+                    .foregroundStyle(.secondary)
+            }
+            if let r = capture.lastRejected {
+                Text(r).font(.footnote).foregroundStyle(.orange)
+            }
+        }
+    }
+
+    private var phaseText: String {
+        switch capture.phase {
+        case .idle: "Ready"
+        case .address: "Address"
+        case .backswing, .top, .downswing: "Swinging"
+        case .impact, .followThrough: "Nice"
+        }
+    }
+
+    private var phaseColor: Color {
+        switch capture.phase {
+        case .address: .green
+        case .backswing, .top, .downswing: .yellow
+        default: .secondary
+        }
+    }
+
+    // 3:1 is the goal, green near it
+    private func tempoColor(_ r: Double) -> Color {
+        switch abs(r - 3) {
+        case ..<0.4: .green
+        case ..<0.9: .yellow
+        default: .orange
         }
     }
 
@@ -52,30 +118,26 @@ struct ContentView: View {
         }
     }
 
+    // manual 3s capture, still handy for recording non-swings
     private var recordButton: some View {
         Button {
             Task {
-                if let rec = await capture.record(handedness: handedness) {
+                if let rec = await capture.record() {
                     connectivity.send(rec)
                 }
             }
         } label: {
-            ZStack {
-                Circle().fill(buttonColor)
-                Text(buttonText)
-                    .font(.system(size: buttonText.count <= 2 ? 44 : 20, weight: .bold, design: .rounded))
-                    .foregroundStyle(.black)
-            }
-            .frame(width: 120, height: 120)
+            Text(buttonText)
+                .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.plain)
+        .tint(buttonColor)
         .disabled(capture.isBusy)
     }
 
     private var buttonText: String {
         switch capture.recordState {
-        case .ready, .saved, .failed: "Record"
-        case .countdown(let n): "\(n)"
+        case .ready, .saved, .failed: "Record 3s"
+        case .countdown(let n): "\(n)…"
         case .recording: "Swing!"
         case .saving: "Saving"
         }
@@ -85,8 +147,7 @@ struct ContentView: View {
         switch capture.recordState {
         case .recording: .red
         case .countdown: .yellow
-        case .saving: .gray
-        default: .green
+        default: .gray
         }
     }
 
@@ -95,10 +156,7 @@ struct ContentView: View {
             if case .failed(let msg) = capture.recordState {
                 Text(msg).foregroundStyle(.red)
             }
-            if let r = capture.lastRecording {
-                Text("last: \(r.accel.count) accel · \(r.motion.count) motion")
-            }
-            Text("\(capture.source) \(Int(capture.accelHz))/\(Int(capture.motionHz)) Hz")
+            Text("\(capture.swingCount) swings · \(capture.source) \(Int(capture.accelHz))/\(Int(capture.motionHz)) Hz")
             Text(connectivity.pendingTransfers > 0 ? "sending \(connectivity.pendingTransfers)…" : "all sent")
             if let e = capture.errorText ?? connectivity.lastError {
                 Text(e).foregroundStyle(.red)
