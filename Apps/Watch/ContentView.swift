@@ -13,10 +13,11 @@ struct ContentView: View {
         ScrollView {
             VStack(spacing: 10) {
                 if workout.isRunning {
-                    Picker("Mode", selection: Binding(get: { capture.mode }, set: { capture.mode = $0 })) {
-                        Text("Full swing").tag(SwingMode.full)
-                        Text("Putting").tag(SwingMode.putt)
+                    // plain button, a Picker in a ScrollView drags the crown machinery in
+                    Button(capture.mode == .putt ? "Mode: Putting" : "Mode: Full swing") {
+                        capture.mode = capture.mode == .putt ? .full : .putt
                     }
+                    .font(.footnote)
                     swingView
                     Divider()
                     recordButton
@@ -128,10 +129,10 @@ struct ContentView: View {
             .tint(.green)
             .disabled(workout.state == .starting)
 
-            Picker("Hand", selection: $handedness) {
-                Text("Righty").tag(Handedness.right)
-                Text("Lefty").tag(Handedness.left)
+            Button(handedness == .right ? "Righty" : "Lefty") {
+                handedness = handedness == .right ? .left : .right
             }
+            .font(.footnote)
 
             if case .failed(let msg) = workout.state {
                 Text(msg).font(.footnote).foregroundStyle(.red)

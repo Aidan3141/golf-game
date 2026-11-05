@@ -75,9 +75,9 @@ debug launch args (Debug builds only): iphone `-autoTestSwing` sends a sample on
 
 ## watch app (M3)
 
-- `WorkoutManager` runs an `HKWorkoutSession` (golf). only to keep the app alive + unlock batched sensors, no builder so nothing saved to health
-- `MotionCapture` streams `CMBatchedSensorManager` accel + device motion into ring buffers (~10s). falls back to `CMMotionManager` @ 100hz if batched isnt supported. record = 3-2-1 haptic countdown, 3s window, waits for the ~1s batch lag, slices by timestamp (secs since boot)
-- live detection runs on a separate 100hz `CMMotionManager` stream (batched lands ~1s late, too laggy for the impact tap). light tap at address, strong at impact. each detected swing auto saves 2.5s before + 0.8s after impact as a recording (toggle)
+- `WorkoutManager` (shared) runs an `HKWorkoutSession` (golf). `WatchAppDelegate.handleActiveWorkoutRecovery` reattaches to a live session if watchos relaunches us. only to keep the app alive + unlock batched sensors, no builder so nothing saved to health
+- `MotionCapture` streams ONE `CMMotionManager` device motion source @ 100hz into ring buffers (~10s) + the detector + the club stream. (batched 800hz was dropped: running it next to the 100hz live stream killed it w/ CMError 109 on the ultra.) only writes observable state when it changes, setting it 100x/s froze the watch ui. record = 3-2-1 haptic countdown, 3s window, waits for the ~1s batch lag, slices by timestamp (secs since boot)
+- live detection runs on that same 100hz stream (low latency, batched used to land ~1s late). light tap at address, strong at impact. each detected swing auto saves 2.5s before + 0.8s after impact as a recording (toggle)
 - `WatchConnectivityManager` writes `SwingRecording` json + `transferFile`s it to the phone
 
 ## iphone app (M3)

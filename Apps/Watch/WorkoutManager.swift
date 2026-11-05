@@ -6,6 +6,9 @@ import Observation
 @MainActor
 @Observable
 final class WorkoutManager: NSObject {
+    // one instance, the app delegate needs it for workout recovery
+    static let shared = WorkoutManager()
+
     enum State: Equatable {
         case idle, starting, running, failed(String)
     }
@@ -32,6 +35,19 @@ final class WorkoutManager: NSObject {
             state = .running
         } catch {
             state = .failed(error.localizedDescription)
+        }
+    }
+
+    // watchos relaunches us after a crash/kill while a workout is live. grab that session
+    // instead of starting a second one
+    func recover() {
+        store.recoverActiveWorkoutSession { session, _ in
+            guard let session else { return }
+            Task { @MainActor in
+                session.delegate = self
+                self.session = session
+                self.state = .running
+            }
         }
     }
 

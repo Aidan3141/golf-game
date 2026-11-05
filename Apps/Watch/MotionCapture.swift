@@ -44,7 +44,7 @@ final class MotionCapture {
     @ObservationIgnored private var lastAngleSent = 0.0
     static let angleInterval = 1.0 / 30  // offered rate, the ack gate decides what actually goes
 
-    // raw data around each swing, ~1-2s later once batched data lands (if saveSwingData)
+    // raw data around each swing, ~1s after impact (if saveSwingData)
     @ObservationIgnored var onSwingData: ((SwingRecording) -> Void)?
     var saveSwingData = true
     var tempoTaps = false
@@ -62,11 +62,8 @@ final class MotionCapture {
     var tempoBackswing = 0.9  // s
     @ObservationIgnored private var tapTask: Task<Void, Never>?
 
-    @ObservationIgnored private var accelBuffer = RingBuffer<AccelSample>(capacity: 8_000)
-    @ObservationIgnored private var motionBuffer = RingBuffer<MotionFrame>(capacity: 2_000)
-    @ObservationIgnored private var batched: CMBatchedSensorManager?
-    @ObservationIgnored private let fallback = CMMotionManager()
-    @ObservationIgnored private var tasks: [Task<Void, Never>] = []
+    @ObservationIgnored private var accelBuffer = RingBuffer<AccelSample>(capacity: 1_000)  // 10s @ 100hz
+    @ObservationIgnored private var motionBuffer = RingBuffer<MotionFrame>(capacity: 1_000)
     @ObservationIgnored private var detector = SwingDetector()
     @ObservationIgnored private let live = CMMotionManager()
 
@@ -85,23 +82,17 @@ final class MotionCapture {
         motionBuffer.removeAll()
         detector.reset()
         phase = .idle
-        if CMBatchedSensorManager.isAccelerometerSupported && CMBatchedSensorManager.isDeviceMotionSupported {
-            startBatched()
-        } else {
-            startFallback()
-        }
+        // ONE source. running CMBatchedSensorManager next to a CMMotionManager killed the batched
+        // streams (CMError 109 not available) on the ultra, so its all 100hz device motion now.
+        // detector is tested at 100hz, recordings are 100hz too (good enough for tuning)
+        source = "motionManager"
+        accelHz = 100
+        motionHz = 100
         startLive()
         isStreaming = true
     }
 
     func stopStreaming() {
-        tasks.forEach { $0.cancel() }
-        tasks.removeAll()
-        batched?.stopAccelerometerUpdates()
-        batched?.stopDeviceMotionUpdates()
-        batched = nil
-        fallback.stopAccelerometerUpdates()
-        fallback.stopDeviceMotionUpdates()
         live.stopDeviceMotionUpdates()
         isStreaming = false
         phase = .idle
@@ -109,8 +100,7 @@ final class MotionCapture {
 
     // MARK: live detection
 
-    // batched data lands ~1s late, too laggy for the impact tap. so detection runs on a
-    // separate 100hz device motion stream, timestamps share the same clock
+    // 100hz device motion feeds detection, the club stream + the raw buffers
     private func startLive() {
         live.deviceMotionUpdateInterval = 1 / 100
         live.startDeviceMotionUpdates(to: .main) { [weak self] motion, _ in
@@ -127,13 +117,13 @@ final class MotionCapture {
     }
 
     private func handleLive(_ f: MotionFrame, accel: AccelSample) {
-        // fallback mode shares this stream for the buffers
-        if source == "motionManager" {
-            motionBuffer.append(f)
-        }
+        motionBuffer.append(f)
+        accelBuffer.append(accel)
         detector.add(accel: [accel])
         let events = detector.add(motion: [f])
-        phase = detector.phase
+        // only write when it changes. @Observable redraws on every set, even same value,
+        // and doing that 100x/s is what froze the watch
+        if detector.phase != phase { phase = detector.phase }
         if let a = detector.currentAngle, f.t - lastAngleSent >= Self.angleInterval {
             lastAngleSent = f.t
             onClubAngle?(a, detector.phase)
@@ -187,7 +177,7 @@ final class MotionCapture {
         }
     }
 
-    // wait for the batched data around the swing, then hand it off
+    // wait for the data after impact, then hand it off
     private func deliver(_ result: SwingResult, timeline: SwingTimeline) async {
         guard saveSwingData, !isBusy else { return }
         let start = timeline.impact - 2.5
@@ -198,52 +188,6 @@ final class MotionCapture {
         onSwingData?(rec)
     }
 
-    // high rate, needs an active workout session. data shows up in ~1s batches
-    private func startBatched() {
-        let m = CMBatchedSensorManager()
-        batched = m
-        source = "batched"
-        accelHz = Double(m.accelerometerDataFrequency)
-        motionHz = Double(m.deviceMotionDataFrequency)
-
-        tasks.append(Task { [weak self] in
-            do {
-                for try await batch in m.accelerometerUpdates() {
-                    let samples = batch.map {
-                        AccelSample(t: $0.timestamp, x: $0.acceleration.x, y: $0.acceleration.y, z: $0.acceleration.z)
-                    }
-                    self?.accelBuffer.append(contentsOf: samples)
-                }
-            } catch {
-                self?.errorText = "accel: \(error.localizedDescription)"
-            }
-        })
-        tasks.append(Task { [weak self] in
-            do {
-                for try await batch in m.deviceMotionUpdates() {
-                    let frames = batch.map(Self.frame)
-                    self?.motionBuffer.append(contentsOf: frames)
-                }
-            } catch {
-                self?.errorText = "motion: \(error.localizedDescription)"
-            }
-        })
-    }
-
-    // backup if batched isnt there, ~100hz max
-    private func startFallback() {
-        source = "motionManager"
-        let hz = 100.0
-        fallback.accelerometerUpdateInterval = 1 / hz
-        accelHz = hz
-        motionHz = hz
-        fallback.startAccelerometerUpdates(to: .main) { [weak self] data, _ in
-            guard let data else { return }
-            let s = AccelSample(t: data.timestamp, x: data.acceleration.x, y: data.acceleration.y, z: data.acceleration.z)
-            MainActor.assumeIsolated { self?.accelBuffer.append(s) }
-        }
-        // device motion comes from the live stream (see handleLive)
-    }
 
     nonisolated private static func frame(_ m: CMDeviceMotion) -> MotionFrame {
         let q = m.attitude.quaternion
