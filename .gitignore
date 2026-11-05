@@ -1,0 +1,26 @@
+# mac
+.DS_Store
+
+# xcode
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+DerivedData/
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# swiftpm
+.build/
+.swiftpm/
+Package.resolved
+
+# reality composer pro user stuff
+*.rcuserdata
+
+# local tools / ai stuff
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.env
