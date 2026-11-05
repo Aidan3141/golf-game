@@ -15,6 +15,7 @@ final class PhoneConnectivity: NSObject {
     @ObservationIgnored private let session: WCSession? = WCSession.isSupported() ? .default : nil
     @ObservationIgnored var onReceive: (() -> Void)?
     @ObservationIgnored var onSwing: ((SwingResult, Date) -> Void)?  // swing + when watch sent it
+    @ObservationIgnored var onClub: ((Double, SwingPhase) -> Void)?  // live club angle stream
 
     override init() {
         super.init()
@@ -60,6 +61,11 @@ extension PhoneConnectivity: WCSessionDelegate {
     }
 
     nonisolated private func handle(_ dict: [String: Any]) {
+        if let angle = dict["club"] as? Double {
+            let phase = (dict["ph"] as? String).flatMap(SwingPhase.init(rawValue:)) ?? .idle
+            Task { @MainActor in self.onClub?(angle, phase) }
+            return
+        }
         guard let data = dict["env"] as? Data,
               let env = try? MessageEnvelope.decode(data),
               case .swing(let swing) = env.payload else { return }

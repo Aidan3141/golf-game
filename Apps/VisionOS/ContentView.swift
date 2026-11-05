@@ -26,6 +26,18 @@ struct ContentView: View {
                     .disabled(appModel.rangeState == .opening)
                 }
 
+                Section("settings") {
+                    Picker("View", selection: $appModel.viewMode) {
+                        ForEach(AppModel.ViewMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    Toggle("Flip left/right", isOn: $appModel.flipCurve)
+                    SliderRow("Curve strength", value: $appModel.curveStrength, in: 0...2, format: "%.1fx")
+                    if appModel.network.clubUpdates > 0 {
+                        LabeledContent("Live club", value: "\(appModel.network.clubUpdates) updates")
+                    }
+                }
+
                 Section("test swing") {
                     Picker("Hand", selection: $appModel.testSwing.handedness) {
                         Text("Right").tag(Handedness.right)
@@ -63,6 +75,9 @@ struct ContentView: View {
                         LabeledContent("Total", value: yards(shot.flight.total))
                         LabeledContent("Offline", value: offline(shot.flight.offline))
                         LabeledContent("Apex", value: yards(shot.flight.apex))
+                        if let face = shot.swing.faceAngle {
+                            LabeledContent("Wrist roll", value: String(format: "%+.0f° → %@", face, curveText(shot.swing.pathBias)))
+                        }
                     }
                 }
             }
@@ -76,11 +91,17 @@ struct ContentView: View {
         }
         #if DEBUG
         // `-autoShot` launch arg: open range + hit, for sim testing w/o clicking
+        // `-openRange` just opens it
         .task {
-            guard ProcessInfo.processInfo.arguments.contains("-autoShot") else { return }
+            let args = ProcessInfo.processInfo.arguments
+            guard args.contains("-autoShot") || args.contains("-openRange") else { return }
             try? await Task.sleep(for: .seconds(2))
-            await hit(appModel.testSwing)
-            if ProcessInfo.processInfo.arguments.contains("-hideWindow") {
+            if args.contains("-autoShot") {
+                await hit(appModel.testSwing)
+            } else {
+                await toggleRange()
+            }
+            if args.contains("-hideWindow") {
                 dismissWindow(id: GolfGameApp.mainWindowID)
             }
         }
@@ -112,6 +133,11 @@ struct ContentView: View {
 
     private func yards(_ m: Double) -> String {
         String(format: "%.0f yd", Units.yards(m))
+    }
+
+    private func curveText(_ path: Double) -> String {
+        if abs(path) < 0.1 { return "straight" }
+        return path < 0 ? "slice" : "hook"
     }
 
     private func offline(_ m: Double) -> String {

@@ -47,6 +47,12 @@ final class WatchConnectivityManager: NSObject {
         }
     }
 
+    // fire n forget, only if the phone app is up. dropped ones dont matter, next one is 40ms later
+    func send(clubAngle: Double, phase: SwingPhase) {
+        guard let session, session.isReachable else { return }
+        session.sendMessage(["club": clubAngle, "ph": phase.rawValue], replyHandler: nil, errorHandler: nil)
+    }
+
     private func refresh() {
         guard let session else { return }
         isReachable = session.isReachable

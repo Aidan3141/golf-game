@@ -12,6 +12,7 @@ public struct SwingResult: Codable, Sendable, Hashable, Identifiable {
     public let smoothnessScore: Double  // 0-1
     public let pathBias: Double  // -1 out-to-in (slice) ... +1 in-to-out (hook)
     public let confidence: Double  // 0-1, how sure it was a real swing
+    public var faceAngle: Double?  // deg, forearm roll at impact vs address. sign calibrated on avp
 
     // target ~3.0. 0 if downswing is 0 so no div by zero
     public var tempoRatio: Double {
@@ -28,7 +29,8 @@ public struct SwingResult: Codable, Sendable, Hashable, Identifiable {
         peakAcceleration: Double,
         smoothnessScore: Double,
         pathBias: Double,
-        confidence: Double
+        confidence: Double,
+        faceAngle: Double? = nil
     ) {
         self.id = id
         self.timestamp = timestamp
@@ -40,6 +42,7 @@ public struct SwingResult: Codable, Sendable, Hashable, Identifiable {
         self.smoothnessScore = smoothnessScore
         self.pathBias = pathBias
         self.confidence = confidence
+        self.faceAngle = faceAngle
     }
 }
 
@@ -68,7 +71,18 @@ extension SwingResult {
             peakAcceleration: peakAcceleration,
             smoothnessScore: smoothnessScore,
             pathBias: pathBias,
-            confidence: confidence
+            confidence: confidence,
+            faceAngle: faceAngle
+        )
+    }
+
+    // copy w/ a new path, avp maps faceAngle -> pathBias w/ its own calibration
+    public func with(pathBias: Double) -> SwingResult {
+        SwingResult(
+            id: id, timestamp: timestamp, handedness: handedness,
+            backswingDuration: backswingDuration, downswingDuration: downswingDuration,
+            peakWristAngularVelocity: peakWristAngularVelocity, peakAcceleration: peakAcceleration,
+            smoothnessScore: smoothnessScore, pathBias: pathBias, confidence: confidence, faceAngle: faceAngle
         )
     }
 }

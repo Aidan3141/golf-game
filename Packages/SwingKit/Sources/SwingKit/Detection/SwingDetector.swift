@@ -52,7 +52,12 @@ public struct SwingDetector: Sendable {
         var t: Double
         var raw: Double
         var smooth: Double
+        var motion: MotionFrame
     }
+
+    // live swing angle (rad) from the address pose, nil till we see an address. for streaming the club
+    public private(set) var currentAngle: Double?
+    private var angles = SwingAngleTracker()
 
     private var frames: RingBuffer<Frame>
     private var accel: RingBuffer<AccelSample>
@@ -75,6 +80,8 @@ public struct SwingDetector: Sendable {
         accel.removeAll()
         smooth = nil
         lastT = nil
+        angles.clear()
+        currentAngle = nil
         stillSince = nil
         addressAt = nil
         peak = nil
@@ -89,19 +96,22 @@ public struct SwingDetector: Sendable {
     public mutating func add(motion: [MotionFrame]) -> [SwingEvent] {
         var events: [SwingEvent] = []
         for m in motion {
-            events += step(t: m.t, raw: m.rotationMagnitude)
+            events += step(m)
         }
         return events
     }
 
-    private mutating func step(t: Double, raw: Double) -> [SwingEvent] {
+    private mutating func step(_ m: MotionFrame) -> [SwingEvent] {
+        let t = m.t
+        let raw = m.rotationMagnitude
         let dt = lastT.map { max(t - $0, 0) } ?? 0
         lastT = t
         let alpha = dt > 0 ? 1 - exp(-dt / config.smoothingTau) : 1
         let s = (smooth ?? raw) + alpha * (raw - (smooth ?? raw))
         smooth = s
-        let frame = Frame(t: t, raw: raw, smooth: s)
+        let frame = Frame(t: t, raw: raw, smooth: s, motion: m)
         frames.append(frame)
+        currentAngle = angles.angle(m)
 
         var events: [SwingEvent] = []
         stillSince = s < config.stillThreshold ? (stillSince ?? t) : nil
@@ -110,6 +120,8 @@ public struct SwingDetector: Sendable {
         if phase == .followThrough {
             if t - lastImpact > config.refractory && s < config.stillThreshold * 2 {
                 phase = .idle
+                angles.clear()
+                currentAngle = nil
             } else {
                 return events
             }
@@ -118,6 +130,8 @@ public struct SwingDetector: Sendable {
         if let since = stillSince, t - since >= config.addressStillTime, phase != .address {
             phase = .address
             addressAt = t
+            angles.setReference(m)
+            currentAngle = 0
             events.append(.address(at: t))
         }
 
@@ -174,6 +188,8 @@ public struct SwingDetector: Sendable {
 
         let back = top.t - takeawayT
         let down = impact.t - top.t
+        let face = angles.faceAngle(impact.motion)
+
         guard config.downswing ~= down else {
             return .rejected(reason: down < config.downswing.lowerBound ? "downswing too fast" : "downswing too slow", at: impact.t)
         }
@@ -202,8 +218,9 @@ public struct SwingDetector: Sendable {
             peakWristAngularVelocity: before.map(\.raw).suffix(20).max() ?? impact.raw,
             peakAcceleration: peakG,
             smoothnessScore: smoothness,
-            pathBias: 0,  // TODO: no reliable path signal yet, needs more data
-            confidence: conf
+            pathBias: 0,  // avp turns faceAngle into curve
+            confidence: conf,
+            faceAngle: face
         )
         let timeline = SwingTimeline(address: addressAt, takeaway: clipped ? nil : takeawayT, top: top.t, impact: impact.t)
         return .impact(result, timeline)

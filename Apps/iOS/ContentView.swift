@@ -74,10 +74,36 @@ struct ContentView: View {
                 try? await Task.sleep(for: .milliseconds(300))
             }
             try? await Task.sleep(for: .seconds(1))
-            sender.send(SwingResult.sample.fresh())
+            if ProcessInfo.processInfo.arguments.contains("-autoTestClub") {
+                await fakeClubStream()
+            } else {
+                sender.send(SwingResult.sample.fresh())
+            }
         }
         #endif
     }
+
+    #if DEBUG
+    // fake wrist angle: address, 0.9s back to 130 deg, 0.3s down, finish, + a swing w/ 10 deg roll
+    private func fakeClubStream() async {
+        func ramp(_ from: Double, _ to: Double, _ secs: Double, _ phase: SwingPhase) async {
+            let n = max(1, Int(secs * 25))
+            for i in 1...n {
+                sender.send(clubAngle: from + (to - from) * Double(i) / Double(n), phase: phase)
+                try? await Task.sleep(for: .milliseconds(40))
+            }
+        }
+        let top = 130.0 * .pi / 180
+        await ramp(0, 0, 1.0, .address)
+        await ramp(0, top, 0.9, .backswing)
+        await ramp(top, 0, 0.3, .downswing)
+        var swing = SwingResult.sample.fresh()
+        swing.faceAngle = 10
+        sender.send(swing)
+        await ramp(0, -1.2, 0.3, .followThrough)
+        await ramp(-1.2, -1.2, 1.5, .followThrough)
+    }
+    #endif
 
     private var watchStatus: String {
         if !connectivity.isPaired { return "not paired" }

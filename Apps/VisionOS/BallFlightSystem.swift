@@ -53,7 +53,7 @@ struct BallFlightSystem: System {
             ball.position = pos
 
             // real ball is 4cm, invisible at 150 yd. grow it w/ distance so u can follow it
-            let dist = simd_distance(pos, Self.headPosition)
+            let dist = simd_distance(ball.position(relativeTo: nil), Self.headPosition)
             ball.scale = .init(repeating: max(1, dist / 9))
 
             // systems run on main thread, text meshes need main actor
@@ -101,7 +101,7 @@ struct BallFlightSystem: System {
 
     @MainActor
     private static func addMarker(at p: SIMD3<Float>, text: String, color: UIColor, in parent: Entity) {
-        let dist = simd_distance(p, headPosition)
+        let dist = simd_distance(parent.convert(position: p, to: nil), headPosition)
         let s = max(1, dist / 40)
         let ring = ModelEntity(
             mesh: .generateCylinder(height: 0.02, radius: 0.8 * s),

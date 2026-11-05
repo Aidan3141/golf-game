@@ -45,6 +45,10 @@ final class NetworkSwingSender {
         send(MessageEnvelope(payload: .swing(swing)))
     }
 
+    func send(clubAngle: Double, phase: SwingPhase) {
+        send(MessageEnvelope(payload: .club(angle: clubAngle, phase: phase)))
+    }
+
     private func send(_ env: MessageEnvelope) {
         guard let connection, state.isConnected, let data = try? MessageFramer.frame(env) else { return }
         connection.send(content: data, completion: .contentProcessed { [weak self] error in

@@ -19,7 +19,20 @@ final class AppModel {
         case closed, opening, open
     }
 
+    enum ViewMode: String, CaseIterable {
+        case firstPerson = "First person"
+        case behind = "Behind ball"
+    }
+
     var rangeState = SpaceState.closed
+    var viewMode = ViewMode.firstPerson
+
+    // wrist roll -> curve calibration. flip if the ball goes the wrong way
+    var flipCurve = false
+    var curveStrength = 1.0
+    static let fullCurveDegrees = 15.0  // this much roll (x strength) = full slice/hook
+
+    let liveClub = LiveClub()
     var testSwing = TestSwingSettings()
     var tuning = FlightTuning.standard
     private(set) var lastShot: Shot?
@@ -32,6 +45,9 @@ final class AppModel {
     init() {
         listen(to: mockSource, live: false)
         listen(to: network, live: true)
+        network.onClub = { [liveClub] angle, phase in
+            liveClub.update(angle: angle, phase: phase)
+        }
         network.start()
     }
 
@@ -45,6 +61,18 @@ final class AppModel {
     }
 
     func hit(_ swing: SwingResult, live: Bool = false) {
+        var swing = swing
+        if let face = swing.faceAngle {
+            swing = swing.with(pathBias: pathBias(forFace: face))
+        }
         lastShot = Shot(swing: swing, flight: FlightSimulator.simulate(swing: swing, tuning: tuning), live: live)
     }
+
+    func pathBias(forFace face: Double) -> Double {
+        let p = face / Self.fullCurveDegrees * curveStrength * (flipCurve ? -1 : 1)
+        return min(max(p, -1), 1)
+    }
+
+    // the hand used for setup when theres no shot yet
+    var handedness: Handedness { testSwing.handedness }
 }

@@ -39,6 +39,11 @@ final class MotionCapture {
     }
     // fires right at impact w/ confident swings, this is what launches the ball
     @ObservationIgnored var onImpact: ((SwingResult) -> Void)?
+    // live club angle for the headset, throttled to ~25hz while ur addressed/swinging
+    @ObservationIgnored var onClubAngle: ((Double, SwingPhase) -> Void)?
+    @ObservationIgnored private var lastAngleSent = 0.0
+    static let angleInterval = 1.0 / 25
+
     // raw data around each swing, ~1-2s later once batched data lands (if saveSwingData)
     @ObservationIgnored var onSwingData: ((SwingRecording) -> Void)?
     var saveSwingData = true
@@ -115,6 +120,10 @@ final class MotionCapture {
         detector.add(accel: [accel])
         let events = detector.add(motion: [f])
         phase = detector.phase
+        if let a = detector.currentAngle, f.t - lastAngleSent >= Self.angleInterval {
+            lastAngleSent = f.t
+            onClubAngle?(a, detector.phase)
+        }
         let device = WKInterfaceDevice.current()
         for e in events {
             switch e {

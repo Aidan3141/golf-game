@@ -47,6 +47,22 @@ final class RangeScene {
         teePosition + [0, groundY + ballRadius, 0]
     }
 
+    // first person: turn + slide the world so the golfer spot (club pivot) is where u stand,
+    // ball in front of u + target off to ur lead side. behind: original layout
+    func applyView(_ mode: AppModel.ViewMode, hand: Handedness) {
+        club.setUp(for: hand)
+        switch mode {
+        case .behind:
+            root.orientation = simd_quatf(angle: 0, axis: [0, 1, 0])
+            root.position = .zero
+        case .firstPerson:
+            let q = simd_quatf(angle: hand == .right ? .pi / 2 : -.pi / 2, axis: [0, 1, 0])
+            let p = q.act(club.root.position)
+            root.orientation = q
+            root.position = [-p.x, 0, -p.z]
+        }
+    }
+
     func resetBall() {
         ball.components.remove(BallFlightComponent.self)
         ball.position = Self.ballRestPosition

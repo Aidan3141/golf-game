@@ -11,6 +11,9 @@ final class NetworkSwingReceiver: SwingSource {
     private(set) var received = 0
     private(set) var lastLatency: Double?  // phone send -> here, secs
 
+    @ObservationIgnored var onClub: ((Double, SwingPhase) -> Void)?
+    private(set) var clubUpdates = 0
+
     let swings: AsyncStream<SwingResult>
     @ObservationIgnored private let continuation: AsyncStream<SwingResult>.Continuation
     @ObservationIgnored private var listener: NWListener?
@@ -116,6 +119,9 @@ final class NetworkSwingReceiver: SwingSource {
             continuation.yield(s)
         case .hello(let name):
             state = .connected(name)
+        case .club(let angle, let phase):
+            clubUpdates &+= 1
+            onClub?(angle, phase)
         case .ping:
             break
         }

@@ -19,6 +19,7 @@
 		44A9DDF2432CD8BC224BC46D /* MotionCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C7F092EF30E306A374B8A09 /* MotionCapture.swift */; };
 		4A8BBBD309077C9E4EC26309 /* GolfGame Watch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 2CC4CACE9F42E379F574F0B3 /* GolfGame Watch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4CB92CD1A7A10A79805A6A6D /* SwingKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5B39E18C1256D07B652E0CA2 /* SwingKit */; };
+		69A755D09B28F515DA55103D /* LiveClub.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196209FD2DFF8E6D0CC6C427 /* LiveClub.swift */; };
 		7D27A2EA4EEBA7018F381941 /* ClubSwing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8969E1D9A293F11C22CF993A /* ClubSwing.swift */; };
 		9309496F7DD34313DDFAEC8B /* BallFlightSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3CD6BF1FB87A541E10274F1 /* BallFlightSystem.swift */; };
 		A3BBBCA9D0631A6F6BE8A093 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13CEE87EB5BEA1FEB10D8093 /* ContentView.swift */; };
@@ -70,6 +71,7 @@
 		058F9DD72DAC2CA3A0AFE854 /* grass_nor.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = grass_nor.jpg; sourceTree = "<group>"; };
 		13CEE87EB5BEA1FEB10D8093 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		16352944458CA419F59D1ADB /* RangeScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RangeScene.swift; sourceTree = "<group>"; };
+		196209FD2DFF8E6D0CC6C427 /* LiveClub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveClub.swift; sourceTree = "<group>"; };
 		1D950B8157E16302AD84F329 /* SwingKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SwingKit; path = Packages/SwingKit; sourceTree = SOURCE_ROOT; };
 		2544BB8B806178342FDA578F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2790370EF5839C892C8E2E0B /* GolfGamePhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfGamePhoneApp.swift; sourceTree = "<group>"; };
@@ -229,6 +231,7 @@
 				D651FAC98A7B599BF438465E /* ContentView.swift */,
 				38A47DF3B0DBC6FF1024DE70 /* GolfGameApp.swift */,
 				634E8C72BAB5EE536CD4364C /* Info.plist */,
+				196209FD2DFF8E6D0CC6C427 /* LiveClub.swift */,
 				E447F7DF405F22D28887C418 /* NetworkSwingReceiver.swift */,
 				16352944458CA419F59D1ADB /* RangeScene.swift */,
 				9D56BF70B404880C37CB9CE3 /* RangeView.swift */,
@@ -401,6 +404,7 @@
 				7D27A2EA4EEBA7018F381941 /* ClubSwing.swift in Sources */,
 				1A0AA9DA830B235CD8637A16 /* ContentView.swift in Sources */,
 				ECF99E922A9BF3C49805B974 /* GolfGameApp.swift in Sources */,
+				69A755D09B28F515DA55103D /* LiveClub.swift in Sources */,
 				C86E7D505A5F4CE31805CC07 /* NetworkSwingReceiver.swift in Sources */,
 				C399280822587B47E57922F4 /* RangeScene.swift in Sources */,
 				0809D0CA4E1B4540D69A5DC9 /* RangeView.swift in Sources */,

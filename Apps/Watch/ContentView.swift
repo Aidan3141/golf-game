@@ -35,6 +35,9 @@ struct ContentView: View {
             capture.onImpact = { [connectivity] swing in
                 connectivity.send(swing: swing)
             }
+            capture.onClubAngle = { [connectivity] angle, phase in
+                connectivity.send(clubAngle: angle, phase: phase)
+            }
             capture.onSwingData = { [connectivity] rec in
                 connectivity.send(rec)
             }
@@ -58,6 +61,10 @@ struct ContentView: View {
                     .foregroundStyle(tempoColor(s.tempoRatio))
                 Text(String(format: "back %.2fs · down %.2fs", s.backswingDuration, s.downswingDuration))
                     .font(.footnote)
+                if let face = s.faceAngle {
+                    Text(String(format: "wrist roll %+.0f°", face))
+                        .font(.footnote)
+                }
                 Text(String(format: "%.0f rad/s · smooth %.0f%%", s.peakWristAngularVelocity, s.smoothnessScore * 100))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
