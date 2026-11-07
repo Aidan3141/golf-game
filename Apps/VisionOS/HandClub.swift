@@ -86,13 +86,11 @@ final class HandClub {
         var t: Double
     }
     private var calSamples: [CalSample] = []
-    private var pendingCalib: (cal: Calibration, length: Float, at: Double)?
     private var lastLockAttempt = -Double.infinity
     private var relockSeen = 0
     private var lockNote = "hold still at address"
     static let minLockFrames = 8
     static let maxLockSpread: Float = 12 * .pi / 180  // frames must agree within this
-    static let sameGripAngle: Float = 25 * .pi / 180  // a new lock this close just replaces the old
     private var lastLead: SIMD3<Float>?
     private var lastTracked = -Double.infinity
     private var lastPose: (pos: SIMD3<Float>, rot: simd_quatf)?
@@ -134,7 +132,6 @@ final class HandClub {
         calib = nil
         lastPose = nil
         calSamples.removeAll()
-        pendingCalib = nil
         posFilter.reset()
         for i in 0..<4 { rotFilters[i].reset() }
         hideAll()
@@ -227,7 +224,11 @@ final class HandClub {
         // address (clasped hands hide the lead hand most frames, thats fine, unseen frames dont
         // reset it), then lock off the AVERAGE once theyre steady. one frame used to be enough +
         // a half hidden frame w/ a flipped palm would lock the club sideways
-        if let lp = hands.leadPos, let lr = hands.leadRot, let tp = hands.trailPos {
+        // locks ONCE. how the club sits in ur hand doesnt change between swings, + relocking every
+        // time u stood still w/ ur hands together (watching the ball, waiting for it to come
+        // back) aimed the shaft at the ball from wherever ur hands were. the error stacked up
+        // shot after shot till the club sat on the back of ur hand. re-lock button to redo it
+        if calib == nil, let lp = hands.leadPos, let lr = hands.leadRot, let tp = hands.trailPos {
             let moved = lastLead.map { simd_distance($0, lp) } ?? 1
             lastLead = lp
             let swinging = live.isFresh && abs(live.watchAngle) > 0.15
@@ -286,7 +287,9 @@ final class HandClub {
             pose = p
             placeFree(p)
             show(.fallback)
-        } else if let last = lastPose, now - lastTracked < 0.25 {
+        } else if let last = lastPose {
+            // hands lost + no watch motion: hold the club where ur hands last were. used to give up
+            // after 0.25s + show the watch putter/club sitting at the ball instead (the "snap to ball")
             pose = last
             placeFree(last)
             show(.frozen)
@@ -379,29 +382,21 @@ final class HandClub {
 
         let avgLead = leadSum / n
         let grip = (avgLead + trailSum / n) / 2
+        // only lock from a real setup over the ball, the lock assumes the clubhead is AT the ball
+        let toBall = ball - grip
+        let reach = simd_length(toBall)
+        let flat = simd_length(SIMD2(toBall.x, toBall.z))
+        let reachOK = putter ? (0.45...1.05) ~= reach : (0.55...1.25) ~= reach
+        guard reachOK, grip.y - ball.y > 0.35, flat < 0.9 else {
+            lockNote = "set up over the ball to lock"
+            calSamples.removeAll()
+            return
+        }
         let (cand, length) = makeCalibration(leadPos: avgLead, leadRot: avgRot, grip: grip, ball: ball,
                                              target: target, backend: backend, lead: lead)
         calSamples.removeAll()
-
-        guard let cur = calib else {
-            apply(cand, length: length)
-            lockNote = "locked ✓"
-            return
-        }
-        // already locked: a close match just refines it, a big change has to show up twice
-        // (1s+ apart) before we believe it. one weird moment cant flip the club anymore
-        if Self.angle(cand.localRot, cur.localRot) < Self.sameGripAngle {
-            apply(cand, length: length)
-            pendingCalib = nil
-            lockNote = "locked ✓"
-        } else if let p = pendingCalib, now - p.at > 1.0, Self.angle(p.cal.localRot, cand.localRot) < Self.maxLockSpread {
-            apply(cand, length: length)
-            pendingCalib = nil
-            lockNote = "re-locked (new grip)"
-        } else {
-            pendingCalib = (cand, length, now)
-            lockNote = "grip changed? hold still to confirm"
-        }
+        apply(cand, length: length)
+        lockNote = "locked ✓"
     }
 
     private func makeCalibration(leadPos: SIMD3<Float>, leadRot: simd_quatf, grip: SIMD3<Float>, ball: SIMD3<Float>,
@@ -431,31 +426,49 @@ final class HandClub {
         posFilter.reset()
     }
 
-    // clubhead crosses the ball going toward the target -> launch now, watch refines it after
+    // clubhead crosses the ball going toward the target -> launch now, watch refines it after.
+    // hand tracking jitters a few mm/frame + the putter face sits 3.6cm behind the ball, so a
+    // wobble used to cross the ball line + frame to frame speed turned it into a rocket. now it
+    // needs a real backstroke first + speed is averaged over ~40ms
+    private var headTrail: [(t: Double, s: Float, pos: SIMD3<Float>)] = []
+    static let speedWindow = 0.04
+
     private func checkContact(pose: (pos: SIMD3<Float>, rot: simd_quatf), ball: SIMD3<Float>, target: SIMD3<Float>, dt: Float, now: Double) {
         let length = freeClub.length
         let head = pose.pos + pose.rot.act([0, -length, 0])
-        defer { prevHead = head }
+        let sNow = simd_dot(head - ball, target)
+        defer {
+            prevHead = head
+            headTrail.append((now, sNow, head))
+            headTrail.removeAll { $0.t < now - 0.8 }
+        }
         guard let prev = prevHead, dt > 0, now - lastContact > 1.5, ballIsIdle else { return }
         let sPrev = simd_dot(prev - ball, target)
-        let sNow = simd_dot(head - ball, target)
         guard sPrev < 0 && sNow >= 0 else { return }
         // where it crossed, how far from the ball center (sideways + up/down)
         let u = sPrev / (sPrev - sNow)
         let cross = prev + (head - prev) * u
         let off = cross - ball - simd_dot(cross - ball, target) * target
         guard simd_length(off) < (putter ? 0.08 : 0.15) else { return }
-        let speed = simd_dot(head - prev, target) / dt
+        // came from a real backstroke in the last 0.8s?
+        let deepest = headTrail.map(\.s).min() ?? 0
+        guard deepest < (putter ? -0.06 : -0.15) else { return }
+        // speed toward the target over the last ~40ms, not one jittery frame
+        guard let ref = headTrail.last(where: { $0.t <= now - Self.speedWindow }) ?? headTrail.first, now > ref.t else { return }
+        let speed = (sNow - ref.s) / Float(now - ref.t)
         guard speed > minContactSpeed else { return }
 
-        // face angle: where the face normal points vs the target, + = right
+        // face angle: where the face normal points vs the target, + = right. capped, a few
+        // degrees off on a putt is already a miss
         var n = pose.rot.act([0, 0, -1])
         n.y = 0
         n = simd_normalize(n)
         let right = simd_cross(target, [0, 1, 0])
-        let faceDeg = atan2(simd_dot(n, right), simd_dot(n, target)) * 180 / .pi
+        let cap: Float = putter ? 8 : 20
+        let faceDeg = min(max(atan2(simd_dot(n, right), simd_dot(n, target)) * 180 / .pi, -cap), cap)
         lastContact = now
         lastContactSpeed = speed
+        headTrail.removeAll()
         appModel?.contact(headSpeed: Double(speed), faceDegrees: Double(faceDeg))
     }
 
