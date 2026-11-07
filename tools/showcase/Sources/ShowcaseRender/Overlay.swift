@@ -1,8 +1,8 @@
 import AppKit
 import CoreGraphics
 
-// 2d data layer over the render: caption, swing phase timeline, the watch, live ball numbers,
-// final shot card. top-left coords in here, flipped for appkit at draw time
+// 2d data layer over the render: caption, swing data strip (tempo + phases + wrist speed from
+// the watch), live ball numbers, final shot card. top-left coords in here
 final class Overlay {
     struct State {
         var caption = ""
@@ -29,13 +29,13 @@ final class Overlay {
         self.rec = rec
     }
 
-    static func rounded(_ size: CGFloat, _ weight: NSFont.Weight) -> NSFont {
-        let f = NSFont.systemFont(ofSize: size, weight: weight)
-        return NSFont(descriptor: f.fontDescriptor.withDesign(.rounded) ?? f.fontDescriptor, size: size) ?? f
+    // galvji for words, din for numbers. not the system font
+    static func words(_ size: CGFloat, bold: Bool = false) -> NSFont {
+        NSFont(name: bold ? "Galvji-Bold" : "Galvji", size: size) ?? .systemFont(ofSize: size)
     }
 
-    static func mono(_ size: CGFloat, _ weight: NSFont.Weight) -> NSFont {
-        NSFont.monospacedDigitSystemFont(ofSize: size, weight: weight)
+    static func num(_ size: CGFloat) -> NSFont {
+        NSFont(name: "DINAlternate-Bold", size: size) ?? .monospacedDigitSystemFont(ofSize: size, weight: .bold)
     }
 
     // text w/ its top-left at x,y (top-left coords). returns size
@@ -50,16 +50,10 @@ final class Overlay {
         return sz
     }
 
-    func rrect(_ r: CGRect, radius: CGFloat, fill: NSColor, stroke: NSColor? = nil, lw: CGFloat = 2) {
+    func rrect(_ r: CGRect, radius: CGFloat, fill: NSColor) {
         let f = CGRect(x: r.minX, y: H - r.maxY, width: r.width, height: r.height)
-        let p = NSBezierPath(roundedRect: f, xRadius: radius, yRadius: radius)
         fill.setFill()
-        p.fill()
-        if let stroke {
-            stroke.setStroke()
-            p.lineWidth = lw
-            p.stroke()
-        }
+        NSBezierPath(roundedRect: f, xRadius: radius, yRadius: radius).fill()
     }
 
     func draw(in ctx: CGContext, _ s: State) {
@@ -71,10 +65,9 @@ final class Overlay {
         caption(s)
         switch s.segment {
         case "swing", "impact":
-            timeline(s)
-            watch(s)
+            strip(s)
         case "pov":
-            watch(s)
+            strip(s)
             if s.ballYards != nil { liveBall(s) }
         case "flight":
             liveBall(s)
@@ -91,25 +84,16 @@ final class Overlay {
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = g
         defer { NSGraphicsContext.restoreGraphicsState() }
-        // fade in from / out to black
         let fadeIn = min(x * secs / 0.6, 1)
         let fadeOut = min((1 - x) * secs / 0.6, 1)
         let vis = CGFloat(kind == "title" ? fadeOut : fadeIn)
-        let shade = NSGradient(colors: [NSColor(white: 0, alpha: 0.55), NSColor(white: 0, alpha: 0.15)])!
+        let shade = NSGradient(colors: [NSColor(white: 0, alpha: 0.5), NSColor(white: 0, alpha: 0.1)])!
         shade.draw(in: NSRect(x: 0, y: 0, width: W, height: H), angle: 90)
         let textA = CGFloat(min(x * secs / 0.5, 1)) * vis
-        let white = NSColor(white: 1, alpha: textA)
-        let dim = NSColor(white: 1, alpha: 0.7 * textA)
-        if kind == "title" {
-            text("golf sim testing", Overlay.rounded(120, .heavy), white, x: W / 2, y: H * 0.2, align: .center)
-            text("vision pro  ·  apple watch  ·  iphone", Overlay.rounded(34, .semibold), dim, x: W / 2, y: H * 0.2 + 150, kern: 1.5, align: .center)
-            text("real swing → real ball flight", Overlay.rounded(28, .medium), accent.withAlphaComponent(textA), x: W / 2, y: H * 0.2 + 206, kern: 1.2, align: .center)
-        } else {
-            text("golf sim testing", Overlay.rounded(96, .heavy), white, x: W / 2, y: H * 0.2, align: .center)
-            text("github.com/Aidan3141/golf-game", Overlay.mono(40, .semibold), accent.withAlphaComponent(textA), x: W / 2, y: H * 0.2 + 130, align: .center)
-            text("visionOS · watchOS · iOS · swift", Overlay.rounded(28, .medium), dim, x: W / 2, y: H * 0.2 + 196, kern: 1.2, align: .center)
+        text("golf sim testing", Overlay.words(124, bold: true), NSColor(white: 1, alpha: textA), x: W / 2, y: H * 0.24, kern: -2, align: .center)
+        if kind != "title" {
+            text("github.com/Aidan3141/golf-game", Overlay.words(38), accent.withAlphaComponent(textA), x: W / 2, y: H * 0.24 + 170, align: .center)
         }
-        // black fade
         let black = 1 - CGFloat(kind == "title" ? min(x * secs / 0.4, 1) : 1) * vis
         if black > 0 {
             NSColor(white: 0, alpha: black).setFill()
@@ -120,126 +104,104 @@ final class Overlay {
     // MARK: pieces
 
     func caption(_ s: State) {
-        let f = Overlay.rounded(22, .semibold)
-        let t = s.caption.uppercased()
-        let sz = NSAttributedString(string: t, attributes: [.font: f, .kern: 2.5]).size()
-        rrect(CGRect(x: 56, y: 52, width: sz.width + 64, height: 46), radius: 23, fill: NSColor(white: 0, alpha: 0.42))
-        let dot = CGRect(x: 76, y: 52 + 23 - 6, width: 12, height: 12)
-        rrect(dot, radius: 6, fill: s.segment == "impact" ? accent : cyan)
-        text(t, f, NSColor(white: 1, alpha: 0.92), x: 100, y: 52 + (46 - sz.height) / 2, kern: 2.5)
-        // tiny project tag top right
-        text("golf sim testing", Overlay.rounded(22, .medium), NSColor(white: 1, alpha: 0.55), x: W - 60, y: 62, align: .right)
+        let f = Overlay.words(26, bold: true)
+        let sz = NSAttributedString(string: s.caption, attributes: [.font: f]).size()
+        rrect(CGRect(x: 56, y: 52, width: sz.width + 48, height: 50), radius: 12, fill: NSColor(white: 0, alpha: 0.45))
+        rrect(CGRect(x: 56, y: 52, width: 6, height: 50), radius: 3, fill: s.segment == "impact" ? accent : cyan)
+        text(s.caption, f, NSColor(white: 1, alpha: 0.95), x: 82, y: 52 + (50 - sz.height) / 2)
     }
 
-    // swing phases to scale w/ a playhead. tempo is the number golfers care about
-    func timeline(_ s: State) {
+    // bottom strip: tempo | swing phases to scale w/ a playhead | wrist speed off the watch
+    func strip(_ s: State) {
         let back = rec.shot.backswing
         let down = rec.shot.downswing
         let lead = 0.5
         let thru = 0.6
         let total = lead + back + down + thru
-        let x0: CGFloat = 360
-        let w: CGFloat = W - 720
-        let y: CGFloat = H - 118
-        let barH: CGFloat = 14
-        rrect(CGRect(x: x0 - 30, y: y - 62, width: w + 60, height: 136), radius: 26, fill: NSColor(white: 0, alpha: 0.42))
+        let top = H - 190
+        rrect(CGRect(x: 56, y: top, width: W - 112, height: 140), radius: 18, fill: NSColor(white: 0, alpha: 0.5))
+        let dim = NSColor(white: 1, alpha: 0.6)
+
+        // tempo
+        text("tempo", Overlay.words(20), dim, x: 96, y: top + 24)
+        text(String(format: "%.1f:1", rec.shot.tempo), Overlay.num(60), .white, x: 96, y: top + 50)
+
+        // timeline
+        let x0: CGFloat = 340
+        let w: CGFloat = W - 340 - 520
+        let y = top + 74
+        let barH: CGFloat = 10
+        text(s.phase, Overlay.words(22, bold: true), .white, x: x0, y: top + 24)
         let parts: [(String, Double, NSColor)] = [
-            ("ADDRESS", lead, NSColor(white: 1, alpha: 0.25)),
-            (String(format: "BACK  %.2fs", back), back, cyan.withAlphaComponent(0.85)),
-            (String(format: "DOWN  %.2fs", down), down, accent),
-            ("THRU", thru, NSColor(white: 1, alpha: 0.35)),
+            ("", lead, NSColor(white: 1, alpha: 0.22)),
+            (String(format: "back %.2fs", back), back, cyan.withAlphaComponent(0.9)),
+            (String(format: "down %.2fs", down), down, accent),
+            ("", thru, NSColor(white: 1, alpha: 0.3)),
         ]
         var x = x0
         for (label, d, c) in parts {
             let pw = w * CGFloat(d / total)
             rrect(CGRect(x: x + 2, y: y, width: pw - 4, height: barH), radius: barH / 2, fill: c)
-            text(label, Overlay.rounded(19, .bold), NSColor(white: 1, alpha: 0.85), x: x + 4, y: y + barH + 12, kern: 1.2)
+            if !label.isEmpty { text(label, Overlay.words(18), dim, x: x + 4, y: y + barH + 10) }
             x += pw
         }
-        // playhead
         let start = rec.launchT - down - back - lead
         let px = x0 + w * CGFloat(min(max((s.dataT - start) / total, 0), 1))
-        rrect(CGRect(x: px - 3, y: y - 14, width: 6, height: barH + 28), radius: 3, fill: .white)
-        // impact tick
+        rrect(CGRect(x: px - 2.5, y: y - 12, width: 5, height: barH + 24), radius: 2.5, fill: .white)
         let ix = x0 + w * CGFloat((lead + back + down) / total)
-        text("IMPACT", Overlay.rounded(16, .heavy), accent, x: ix, y: y - 40, kern: 1.5, align: .center)
-        // tempo big on the left
-        text("TEMPO", Overlay.rounded(16, .bold), NSColor(white: 1, alpha: 0.6), x: x0 - 30 - 40, y: y - 48, kern: 1.5, align: .right)
-        text(String(format: "%.1f:1", rec.shot.tempo), Overlay.mono(44, .heavy), .white, x: x0 - 30 - 40, y: y - 26, align: .right)
-        text(s.phase, Overlay.rounded(26, .heavy), .white, x: x0, y: y - 48, kern: 2)
-    }
+        text("impact", Overlay.words(17, bold: true), accent, x: ix, y: y - 34, align: .center)
 
-    // the watch, drawn. screen shows what its sensing
-    func watch(_ s: State) {
-        let cx: CGFloat = W - 200
-        let cy: CGFloat = H - 420
-        let bw: CGFloat = 176
-        let bh: CGFloat = 208
-        rrect(CGRect(x: cx - 190, y: cy - bh / 2 - 100, width: 380, height: bh + 240), radius: 30, fill: NSColor(white: 0, alpha: 0.35))
-        // band
-        rrect(CGRect(x: cx - 62, y: cy - bh / 2 - 70, width: 124, height: bh + 140), radius: 30, fill: NSColor(white: 0.12, alpha: 0.85))
-        // case
-        let glow = s.impact.map { 1 - $0 } ?? 0
-        rrect(CGRect(x: cx - bw / 2 - 6, y: cy - bh / 2 - 6, width: bw + 12, height: bh + 12), radius: 52,
-              fill: NSColor(white: 0.55, alpha: 1), stroke: glow > 0 ? accent.withAlphaComponent(glow) : nil, lw: 10 * glow)
-        rrect(CGRect(x: cx - bw / 2, y: cy - bh / 2, width: bw, height: bh), radius: 46, fill: .black)
-        // crown
-        rrect(CGRect(x: cx + bw / 2 + 4, y: cy - 34, width: 12, height: 40), radius: 5, fill: NSColor(white: 0.5, alpha: 1))
-        // screen
-        let top = cy - bh / 2 + 26
-        text(s.impact != nil ? "IMPACT" : s.phase, Overlay.rounded(18, .heavy), s.impact != nil ? accent : cyan, x: cx, y: top, kern: 1.2, align: .center)
-        let dps = s.impact != nil ? rec.shot.wristSpeed * 180 / .pi : s.wristSpeed * 180 / .pi
-        text(String(format: "%.0f", dps), Overlay.mono(54, .heavy), .white, x: cx, y: top + 30, align: .center)
-        text("°/s wrist", Overlay.rounded(17, .semibold), NSColor(white: 1, alpha: 0.6), x: cx, y: top + 96, align: .center)
-        // little speed bar
-        let frac = CGFloat(min(dps / max(rec.shot.wristSpeed * 180 / .pi, 1), 1))
-        rrect(CGRect(x: cx - 60, y: top + 130, width: 120, height: 8), radius: 4, fill: NSColor(white: 1, alpha: 0.15))
-        rrect(CGRect(x: cx - 60, y: top + 130, width: max(8, 120 * frac), height: 8), radius: 4, fill: s.impact != nil ? accent : cyan)
-        // label
-        text("APPLE WATCH ON LEAD WRIST", Overlay.rounded(16, .bold), NSColor(white: 1, alpha: 0.95), x: cx, y: cy + bh / 2 + 84, kern: 1.4, align: .center)
-        text("100 Hz motion → iPhone → Vision Pro", Overlay.rounded(16, .medium), NSColor(white: 1, alpha: 0.6), x: cx, y: cy + bh / 2 + 108, align: .center)
+        // wrist speed, off the watch
+        let rx = W - 96
+        let dps = (s.impact != nil ? rec.shot.wristSpeed : s.wristSpeed) * 180 / .pi
+        text("wrist speed", Overlay.words(20), dim, x: rx, y: top + 24, align: .right)
+        let n = text(String(format: "%.0f", dps), Overlay.num(60), s.impact != nil ? accent : .white, x: rx - 58, y: top + 50, align: .right)
+        _ = n
+        text("°/s", Overlay.words(24), dim, x: rx, y: top + 78, align: .right)
+        text("from the apple watch on my left wrist", Overlay.words(17), NSColor(white: 1, alpha: 0.5), x: rx, y: top + 116, align: .right)
     }
 
     func liveBall(_ s: State) {
-        let x: CGFloat = W - 60
-        rrect(CGRect(x: W - 380, y: 120, width: 320, height: 210), radius: 26, fill: NSColor(white: 0, alpha: 0.42))
-        text("DISTANCE", Overlay.rounded(17, .bold), NSColor(white: 1, alpha: 0.6), x: x - 28, y: 140, kern: 1.5, align: .right)
-        text(String(format: "%.0f yd", s.ballYards ?? 0), Overlay.mono(52, .heavy), .white, x: x - 28, y: 162, align: .right)
-        text("HEIGHT", Overlay.rounded(17, .bold), NSColor(white: 1, alpha: 0.6), x: x - 28, y: 236, kern: 1.5, align: .right)
-        text(String(format: "%.0f ft", s.ballHeightFt ?? 0), Overlay.mono(40, .heavy), accent, x: x - 28, y: 258, align: .right)
+        let x: CGFloat = W - 88
+        rrect(CGRect(x: W - 380, y: 120, width: 320, height: 210), radius: 18, fill: NSColor(white: 0, alpha: 0.45))
+        let dim = NSColor(white: 1, alpha: 0.6)
+        text("distance", Overlay.words(20), dim, x: x, y: 142, align: .right)
+        text(String(format: "%.0f yd", s.ballYards ?? 0), Overlay.num(58), .white, x: x, y: 166, align: .right)
+        text("height", Overlay.words(20), dim, x: x, y: 240, align: .right)
+        text(String(format: "%.0f ft", s.ballHeightFt ?? 0), Overlay.num(44), accent, x: x, y: 264, align: .right)
     }
 
     func shotCard(_ s: State) {
         let a = CGFloat(min(s.segX * 4, 1))
-        let w: CGFloat = 560
+        let w: CGFloat = 580
         let x = W - w - 70
         let y: CGFloat = H - 420 - 70
-        rrect(CGRect(x: x, y: y, width: w, height: 420), radius: 34, fill: NSColor(white: 0.03, alpha: 0.62 * a))
+        rrect(CGRect(x: x, y: y, width: w, height: 420), radius: 24, fill: NSColor(white: 0.03, alpha: 0.62 * a))
         let white = NSColor(white: 1, alpha: a)
         let dim = NSColor(white: 1, alpha: 0.6 * a)
-        text("CARRY", Overlay.rounded(20, .bold), accent.withAlphaComponent(a), x: x + 44, y: y + 36, kern: 2)
-        let big = text(String(format: "%.0f", rec.shot.carryYd), Overlay.rounded(128, .heavy), white, x: x + 38, y: y + 52)
-        text("yd", Overlay.rounded(40, .bold), dim, x: x + 46 + big.width, y: y + 52 + big.height - 70)
+        text("carry", Overlay.words(24, bold: true), accent.withAlphaComponent(a), x: x + 44, y: y + 34)
+        let big = text(String(format: "%.0f", rec.shot.carryYd), Overlay.num(140), white, x: x + 40, y: y + 58)
+        text("yd", Overlay.words(40, bold: true), dim, x: x + 52 + big.width, y: y + 58 + big.height - 72)
         let curve: String = {
             let off = rec.shot.offlineM * 1.0936
             if abs(off) < 3 { return "straight" }
-            return String(format: "%.0f %@", abs(off), off > 0 ? "R" : "L")
+            return String(format: "%.0f yd %@", abs(off), off > 0 ? "right" : "left")
         }()
         let stats: [(String, String)] = [
-            ("TOTAL", String(format: "%.0f yd", rec.shot.totalYd)),
-            ("APEX", String(format: "%.0f ft", rec.shot.apexM * 3.28084)),
-            ("CURVE", curve),
-            ("TEMPO", String(format: "%.1f:1", rec.shot.tempo)),
-            ("WRIST", String(format: "%.0f°/s", rec.shot.wristSpeed * 180 / .pi)),
-            ("SMOOTH", String(format: "%.0f%%", rec.shot.smoothness * 100)),
+            ("total", String(format: "%.0f yd", rec.shot.totalYd)),
+            ("apex", String(format: "%.0f ft", rec.shot.apexM * 3.28084)),
+            ("curve", curve),
+            ("tempo", String(format: "%.1f:1", rec.shot.tempo)),
+            ("wrist speed", String(format: "%.0f°/s", rec.shot.wristSpeed * 180 / .pi)),
+            ("smooth", String(format: "%.0f%%", rec.shot.smoothness * 100)),
         ]
         for (i, (k, v)) in stats.enumerated() {
             let col = CGFloat(i % 3)
             let row = CGFloat(i / 3)
-            let sx = x + 44 + col * 168
-            let sy = y + 230 + row * 90
-            text(k, Overlay.rounded(16, .bold), dim, x: sx, y: sy, kern: 1.5)
-            text(v, Overlay.mono(32, .heavy), white, x: sx, y: sy + 22)
+            let sx = x + 44 + col * 176
+            let sy = y + 236 + row * 88
+            text(k, Overlay.words(19), dim, x: sx, y: sy)
+            text(v, Overlay.num(36), white, x: sx, y: sy + 24)
         }
     }
 }

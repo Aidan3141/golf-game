@@ -34,13 +34,15 @@ final class Golfer {
     init(righty: Bool) {
         self.righty = righty
         boneMat = SCNMaterial()
-        boneMat.lightingModel = .constant
-        boneMat.diffuse.contents = NSColor(srgbRed: 0.55, green: 0.95, blue: 1.0, alpha: 1)
-        boneMat.emission.contents = NSColor(srgbRed: 0.35, green: 0.85, blue: 1.0, alpha: 1)
+        boneMat.lightingModel = .physicallyBased
+        boneMat.diffuse.contents = NSColor(srgbRed: 0.5, green: 0.85, blue: 0.95, alpha: 1)
+        boneMat.emission.contents = NSColor(srgbRed: 0.08, green: 0.2, blue: 0.24, alpha: 1)
+        boneMat.roughness.contents = 0.5
         jointMat = SCNMaterial()
-        jointMat.lightingModel = .constant
-        jointMat.diffuse.contents = NSColor.white
-        jointMat.emission.contents = NSColor.white
+        jointMat.lightingModel = .physicallyBased
+        jointMat.diffuse.contents = NSColor(white: 0.95, alpha: 1)
+        jointMat.emission.contents = NSColor(white: 0.15, alpha: 1)
+        jointMat.roughness.contents = 0.45
 
         let shaft = SCNCylinder(radius: 0.006, height: 1)
         let sm = SCNMaterial()
@@ -62,9 +64,9 @@ final class Golfer {
         // the watch on the lead wrist + a ring that pops at impact
         let w = SCNBox(width: 0.045, height: 0.012, length: 0.05, chamferRadius: 0.01)
         let wm = SCNMaterial()
-        wm.lightingModel = .constant
-        wm.diffuse.contents = NSColor(srgbRed: 1, green: 0.8, blue: 0.25, alpha: 1)
-        wm.emission.contents = NSColor(srgbRed: 1, green: 0.75, blue: 0.2, alpha: 1)
+        wm.lightingModel = .physicallyBased
+        wm.diffuse.contents = NSColor(white: 0.12, alpha: 1)
+        wm.roughness.contents = 0.4
         w.materials = [wm]
         watch = SCNNode(geometry: w)
         let ring = SCNTorus(ringRadius: 0.05, pipeRadius: 0.004)
@@ -268,8 +270,7 @@ final class Golfer {
             watch.isHidden = false
             watchPulse.simdPosition = watch.simdPosition
             watchPulse.simdOrientation = simd_quatf(from: [0, 1, 0], to: dir)
-            watchPulse.simdScale = SIMD3(repeating: 1 + 5 * impactPulse)
-            watchPulse.geometry!.firstMaterial!.transparency = CGFloat(impactPulse > 0 ? (1 - impactPulse) : 0)
+            watchPulse.isHidden = true
         } else {
             watch.isHidden = true
         }

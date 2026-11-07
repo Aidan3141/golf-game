@@ -23,7 +23,18 @@ let rec = try Recording.load(recPath)
 if let s = args["skySign"], let v = Float(s) { RangeBuilder.skySign = v }
 if let s = args["skyExtra"], let v = Float(s) { RangeBuilder.skyExtra = v }
 let assets = URL(fileURLWithPath: assetsPath)
-let L = rec.launchT
+// launch = first frame the ball actually moves (near the recorded mark). a test swing in the app
+// animates the club first so the mark can be early, + the ball would sit there after the hit
+let L: Double = {
+    guard let b0 = rec.frames.first(where: { $0.t >= rec.launchT - 0.05 })?.ball else { return rec.launchT }
+    let rest = SIMD3(b0[0], b0[1], b0[2])
+    let moved = rec.frames.first { f in
+        guard f.t >= rec.launchT - 0.05, let b = f.ball else { return false }
+        return simd_distance(SIMD3(b[0], b[1], b[2]), rest) > 0.01
+    }
+    guard let m = moved, m.t - rec.launchT < 3 else { return rec.launchT }
+    return m.t - 0.011
+}()
 let flight = rec.shot.flightSecs
 
 // MARK: scene
@@ -49,8 +60,7 @@ let ballNode: SCNNode = {
 let tracerMat: SCNMaterial = {
     let m = SCNMaterial()
     m.lightingModel = .constant
-    m.diffuse.contents = NSColor(srgbRed: 1, green: 0.85, blue: 0.3, alpha: 1)
-    m.emission.contents = NSColor(srgbRed: 1, green: 0.8, blue: 0.25, alpha: 1)
+    m.diffuse.contents = NSColor(srgbRed: 1, green: 0.86, blue: 0.35, alpha: 1)
     return m
 }()
 var tracer: [SCNNode] = []
@@ -104,7 +114,7 @@ func updateTracer(upTo s: Double, camPos: SIMD3<Float>) {
             continue
         }
         node.isHidden = false
-        let r = max(0.012, 0.0022 * simd_distance(camPos, (a + b) / 2))
+        let r = max(0.0035, 0.00065 * simd_distance(camPos, (a + b) / 2))
         node.simdScale = [r, len, r]
         node.simdPosition = (a + b) / 2
         node.simdOrientation = simd_quatf(from: [0, 1, 0], to: d / len)
@@ -118,9 +128,9 @@ let cam = SCNCamera()
 cam.zNear = 0.05
 cam.zFar = 4000
 cam.wantsHDR = true
-cam.bloomIntensity = 0.9
-cam.bloomThreshold = 0.75
-cam.bloomBlurRadius = 10
+cam.bloomIntensity = 0.18
+cam.bloomThreshold = 0.95
+cam.bloomBlurRadius = 6
 cam.wantsExposureAdaptation = false
 cam.exposureOffset = 0
 cam.vignettingIntensity = 0.35
@@ -152,9 +162,9 @@ struct Segment {
 }
 
 var segments = [
-    Segment(name: "pov", caption: "in the headset · club follows ur hands + the watch", from: L - 1.7, to: L + 3.2, speed: 1),
-    Segment(name: "swing", caption: "3rd person · rebuilt from headset head + hand tracking", from: L - 2.1, to: L + 0.7, speed: 1),
-    Segment(name: "impact", caption: "impact · 0.2× speed", from: L - 0.4, to: L + 0.12, speed: 0.2),
+    Segment(name: "pov", caption: "what i see in the headset", from: L - 1.7, to: L + 3.2, speed: 1),
+    Segment(name: "swing", caption: "same swing from the outside, rebuilt from head + hand tracking", from: L - 2.1, to: L + 0.7, speed: 1),
+    Segment(name: "impact", caption: "impact, 5x slower", from: L - 0.4, to: L + 0.12, speed: 0.2),
     Segment(name: "flight", caption: "ball flight", from: L, to: L + min(flight, 9), speed: 1),
     Segment(name: "side", caption: "the shot", from: L + min(flight, 9), to: L + min(flight, 9), speed: 1, extraHold: 3.2),
 ]
@@ -212,13 +222,13 @@ let peakWrist = rec.shot.wristSpeed
 
 func phaseName(_ p: String) -> String {
     switch p {
-    case "backswing": return "BACKSWING"
-    case "top": return "TOP"
-    case "downswing": return "DOWNSWING"
-    case "impact": return "IMPACT"
-    case "followThrough": return "FOLLOW THRU"
-    case "address": return "ADDRESS"
-    default: return "READY"
+    case "backswing": return "backswing"
+    case "top": return "top"
+    case "downswing": return "downswing"
+    case "impact": return "impact"
+    case "followThrough": return "follow through"
+    case "address": return "address"
+    default: return "set up"
     }
 }
 

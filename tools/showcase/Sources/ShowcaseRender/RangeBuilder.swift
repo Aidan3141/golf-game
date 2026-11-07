@@ -154,12 +154,12 @@ enum RangeBuilder {
 // the apps sign style, drawn to a texture: dark plate, accent bar, big white number, small unit
 enum Sign {
     static func image(value: String, unit: String?, caption: String?, accent: NSColor) -> (NSImage, CGFloat) {
-        let numFont = NSFont.systemFont(ofSize: 200, weight: .heavy)
-        let unitFont = NSFont.systemFont(ofSize: 84, weight: .bold)
-        let capFont = NSFont.systemFont(ofSize: 68, weight: .heavy)
+        let numFont = NSFont(name: "DINAlternate-Bold", size: 200) ?? .systemFont(ofSize: 200, weight: .heavy)
+        let unitFont = NSFont(name: "Galvji-Bold", size: 80) ?? .systemFont(ofSize: 80, weight: .bold)
+        let capFont = NSFont(name: "Galvji-Bold", size: 64) ?? .systemFont(ofSize: 64, weight: .heavy)
         let num = NSAttributedString(string: value, attributes: [.font: numFont, .foregroundColor: NSColor.white])
         let un = unit.map { NSAttributedString(string: $0, attributes: [.font: unitFont, .foregroundColor: NSColor(white: 0.85, alpha: 1)]) }
-        let cap = caption.map { NSAttributedString(string: $0.uppercased(), attributes: [.font: capFont, .foregroundColor: accent]) }
+        let cap = caption.map { NSAttributedString(string: $0, attributes: [.font: capFont, .foregroundColor: accent]) }
         let ns = num.size()
         let us = un?.size() ?? .zero
         let cs = cap?.size() ?? .zero
@@ -181,6 +181,7 @@ enum Sign {
             num.draw(at: NSPoint(x: x0, y: pad + numFont.descender))
             un?.draw(at: NSPoint(x: x0 + ns.width + 20, y: pad + unitFont.descender))
             cap?.draw(at: NSPoint(x: x0, y: pad + numH + 4 + capFont.descender))
+            _ = cs
             return true
         }
         return (img, h / numH)

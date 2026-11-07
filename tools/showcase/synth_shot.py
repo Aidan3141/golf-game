@@ -13,7 +13,10 @@ pre = 4.0  # secs before launch
 
 ball_frames = [f for f in src["frames"] if f.get("ball")]
 ball0 = np.array(ball_frames[0]["ball"])
-t_src0 = src["frames"][0]["t"] + src["launchT"]
+# impact = when the ball actually starts moving (the apps test swing animates the club first,
+# so the recorded launch mark is ~1.4s early)
+moving = next(f for f in ball_frames if np.linalg.norm(np.array(f["ball"]) - ball0) > 0.01)
+t_src0 = moving["t"] - 1 / 90
 # ball path by time since launch
 bt = np.array([f["t"] - t_src0 for f in ball_frames])
 bp = np.array([f["ball"] for f in ball_frames])
