@@ -29,6 +29,7 @@ struct RangeView: View {
             content.add(hc.leftAnchor)
             content.add(hc.rightAnchor)
             handClub = hc
+            appModel.showcase.attach(ball: s.ball, root: s.root)
             #if DEBUG
             // `-sideView`: turn the world so the sim camera sees the shot from the side
             if ProcessInfo.processInfo.arguments.contains("-sideView") {
@@ -82,6 +83,7 @@ struct RangeView: View {
         .onChange(of: appModel.trainerBackswing) { _, _ in updateTrainer() }
         .onDisappear {
             appModel.ballBusy = false
+            appModel.showcase.detach()
             scene?.trainer.stop()
             appModel.stopHandTracking()
         }
@@ -177,6 +179,7 @@ struct RangeView: View {
         guard shot.id != playedShotID else { return }
         playedShotID = shot.id
         launchedAt = .now
+        appModel.showcase.launched()
         let landing = shot.flight.points[shot.flight.landingIndex].time + 0.3
         scene.clearEffects()
         scene.resetBall()
@@ -209,6 +212,9 @@ struct RangeView: View {
             }
             try? await Task.sleep(for: .seconds(1.0))
             guard playedShotID == shot.id else { return }
+            // latest version, may have been refined mid flight
+            let latest = appModel.lastShot?.id == shot.id ? appModel.lastShot : shot
+            appModel.showcase.finished(latest, handedness: appModel.handedness, source: appModel.clubSource.rawValue)
             scene.resetBall()
             appModel.ballBusy = false
         }

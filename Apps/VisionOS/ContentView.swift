@@ -239,10 +239,29 @@ struct ContentView: View {
             if logs.count > 1 {
                 ShareLink("Share All Swing Logs (\(logs.count))", items: logs)
             }
+            showcaseRows
         } header: {
             Text("club")
         } footer: {
             Text("system predicted = the renderer pins the club to ur palm (least lag). manual = old way, for comparing. hybrid = watch takes over when ur hands leave view")
+        }
+    }
+
+    // records head + hands + club + ball per shot so the mac can render it from the outside
+    @ViewBuilder
+    private var showcaseRows: some View {
+        @Bindable var showcase = appModel.showcase
+        Toggle("Showcase recorder", isOn: $showcase.isOn)
+        if showcase.isOn {
+            LabeledContent("Showcase", value: showcase.status)
+                .font(.footnote)
+            if let f = showcase.lastFile {
+                ShareLink("Share Last Showcase Shot", item: f)
+            }
+            let all = ShowcaseRecorder.all()
+            if all.count > 1 {
+                ShareLink("Share All Showcase Shots (\(all.count))", items: all)
+            }
         }
     }
 

@@ -89,6 +89,8 @@ final class AppModel {
 
     // per swing frame logs for debugging the club, shareable from the window
     let swingLogger = SwingLogger()
+    // records a whole shot (head, hands, club, ball) for the mac showcase render
+    let showcase = ShowcaseRecorder()
     var lastSwingLog: URL?
 
     // contact launch waits this long for the watch to refine it
@@ -152,6 +154,7 @@ final class AppModel {
         liveClub.displayLead = watchDisplayLeadMs / 1000
         swingLogger.settings = { [weak self] in self?.tuningSnapshot ?? [:] }
         swingLogger.onWrite = { [weak self] url in self?.lastSwingLog = url }
+        if ProcessInfo.processInfo.arguments.contains("-showcase") { showcase.isOn = true }
     }
 
     func listen(to source: some SwingSource, live: Bool) {

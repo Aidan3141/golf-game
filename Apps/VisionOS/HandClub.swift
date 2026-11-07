@@ -555,6 +555,7 @@ final class HandClub {
             age: live.sample?.time.map { ProcessInfo.processInfo.systemUptime - $0 },
             phase: live.phase.rawValue
         ))
+        appModel.showcase.tick(grip: pose?.pos, club: head, watch: live.sample?.angle, phase: live.phase.rawValue)
     }
 
     private func updateStats(_ now: Double) {
