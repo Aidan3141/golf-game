@@ -37,12 +37,14 @@ final class MotionCapture {
     var handedness = Handedness.right {
         didSet { detector.handedness = handedness }
     }
-    // fires right at impact w/ confident swings, this is what launches the ball
-    @ObservationIgnored var onImpact: ((SwingResult) -> Void)?
-    // live club angle for the headset, throttled to ~25hz while ur addressed/swinging
-    @ObservationIgnored var onClubAngle: ((Double, SwingPhase) -> Void)?
+    // fires right at impact w/ confident swings (+ impact time, watch uptime). launches the ball
+    @ObservationIgnored var onImpact: ((SwingResult, Double) -> Void)?
+    // live club for the headset: angle + how fast its turning + when (watch uptime).
+    // offered at 30hz, the link decides what actually goes
+    @ObservationIgnored var onClubSample: ((ClubSample) -> Void)?
     @ObservationIgnored private var lastAngleSent = 0.0
-    static let angleInterval = 1.0 / 30  // offered rate, the ack gate decides what actually goes
+    @ObservationIgnored private var angleRate = AngleRateTracker()
+    static let angleInterval = 1.0 / 30
 
     // raw data around each swing, ~1s after impact (if saveSwingData)
     @ObservationIgnored var onSwingData: ((SwingRecording) -> Void)?
@@ -124,9 +126,15 @@ final class MotionCapture {
         // only write when it changes. @Observable redraws on every set, even same value,
         // and doing that 100x/s is what froze the watch
         if detector.phase != phase { phase = detector.phase }
-        if let a = detector.currentAngle, f.t - lastAngleSent >= Self.angleInterval {
-            lastAngleSent = f.t
-            onClubAngle?(a, detector.phase)
+        if let a = detector.currentAngle {
+            // rate every frame (100hz) so its smooth, send at 30
+            let omega = angleRate.add(t: f.t, angle: a)
+            if f.t - lastAngleSent >= Self.angleInterval {
+                lastAngleSent = f.t
+                onClubSample?(ClubSample(angle: a, omega: omega, phase: detector.phase, time: f.t))
+            }
+        } else {
+            angleRate.reset()
         }
         let device = WKInterfaceDevice.current()
         for e in events {
@@ -145,7 +153,7 @@ final class MotionCapture {
                 if result.confidence >= detector.config.minConfidenceToSend {
                     lastSwing = result
                     lastRejected = nil
-                    onImpact?(result)
+                    onImpact?(result, timeline.impact)
                 } else {
                     lastRejected = "not sure that was a swing"
                 }

@@ -18,6 +18,9 @@ final class NetworkSwingSender {
     @ObservationIgnored private var connection: NWConnection?
     @ObservationIgnored private var endpoint: NWEndpoint?
     @ObservationIgnored private var pingTask: Task<Void, Never>?
+    // headset clock - phone clock (both uptime), from clock ping/pongs
+    @ObservationIgnored private(set) var clock = ClockOffsetEstimator()
+    private(set) var syncLabel = "—"
 
     func start() {
         guard browser == nil else { return }
@@ -48,16 +51,26 @@ final class NetworkSwingSender {
         send(MessageEnvelope(payload: .swing(swing)))
     }
 
-    // keep the watchs send time so the headset knows how stale it is
-    func send(clubAngle: Double, phase: SwingPhase, watchSentAt: Date) {
-        send(MessageEnvelope(payload: .club(angle: clubAngle, phase: phase), sentAt: watchSentAt))
+    // sample time comes in phone clock, goes out in the headsets clock
+    func send(club s: ClubSample) {
+        send(MessageEnvelope(payload: .clubSample(s.shifted(by: clock.offset))))
+    }
+
+    // impact time phone clock -> headset clock so the ball can launch from the real impact moment
+    func send(_ swing: SwingResult, impactPhoneTime: Double?) {
+        let it = impactPhoneTime.flatMap { clock.toRemote($0) }
+        send(MessageEnvelope(payload: .swingAt(swing, impactTime: it)))
     }
 
     private func send(_ env: MessageEnvelope) {
         guard let connection, state.isConnected, let data = try? MessageFramer.frame(env) else { return }
         connection.send(content: data, completion: .contentProcessed { [weak self] error in
             MainActor.assumeIsolated {
-                if error == nil, case .swing = env.payload { self?.sent += 1 }
+                guard error == nil else { return }
+                switch env.payload {
+                case .swing, .swingAt: self?.sent += 1
+                default: break
+                }
             }
         })
     }
@@ -78,6 +91,7 @@ final class NetworkSwingSender {
                 case .ready:
                     self.state = .connected("Vision Pro")
                     self.decoder = FrameDecoder()
+                    self.clock.reset()  // new connection, maybe a new headset boot
                     self.send(MessageEnvelope(payload: .hello(device: UIDevice.current.name)))
                     self.startPings()
                     self.receive(on: c)
@@ -97,16 +111,23 @@ final class NetworkSwingSender {
         c.start(queue: .main)
     }
 
-    // avp talks back (just mode for now)
+    // avp talks back: mode + clock pongs
     private func receive(on c: NWConnection) {
         c.receive(minimumIncompleteLength: 1, maximumLength: 16 * 1024) { [weak self] data, _, done, error in
             MainActor.assumeIsolated {
                 guard let self else { return }
                 if let data, !data.isEmpty {
                     for env in self.decoder.append(data) {
-                        if case .mode(let m) = env.payload {
+                        switch env.payload {
+                        case .mode(let m):
                             self.mode = m
                             self.onMode?(m)
+                        case .clockPong(let t0, let t1):
+                            self.clock.add(sent: t0, remote: t1, received: ProcessInfo.processInfo.systemUptime)
+                            let label = self.clock.uncertainty.map { String(format: "±%.0f ms", $0 * 1000) } ?? "—"
+                            if label != self.syncLabel { self.syncLabel = label }
+                        default:
+                            break
                         }
                     }
                 }
@@ -125,13 +146,16 @@ final class NetworkSwingSender {
         }
     }
 
-    // keeps the link warm + notices when the headset goes away
+    // clock ping every sec: keeps the link warm, notices when the headset goes away, + keeps
+    // the phone<->headset clock offset fresh. first few go fast so we're synced right away
     private func startPings() {
         pingTask?.cancel()
         pingTask = Task {
+            var n = 0
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(2))
-                self.send(MessageEnvelope(payload: .ping))
+                self.send(MessageEnvelope(payload: .clockPing(t0: ProcessInfo.processInfo.systemUptime)))
+                n += 1
+                try? await Task.sleep(for: .milliseconds(n < 10 ? 150 : 1000))
             }
         }
     }

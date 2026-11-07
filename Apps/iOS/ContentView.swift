@@ -20,6 +20,8 @@ struct ContentView: View {
                     }
                     LabeledContent("Live club (watch → phone)", value: connectivity.clubStats)
                         .font(.footnote)
+                    LabeledContent("Headset clock sync", value: sender.syncLabel)
+                        .font(.footnote)
                     Button("Send Test Swing", systemImage: "paperplane") {
                         sender.send(SwingResult.sample.fresh())
                     }
@@ -102,7 +104,9 @@ struct ContentView: View {
         func ramp(_ from: Double, _ to: Double, _ secs: Double, _ phase: SwingPhase) async {
             let n = max(1, Int(secs * 25))
             for i in 1...n {
-                sender.send(clubAngle: from + (to - from) * Double(i) / Double(n), phase: phase, watchSentAt: .now)
+                let a = from + (to - from) * Double(i) / Double(n)
+                sender.send(club: ClubSample(angle: a, omega: (to - from) / secs, phase: phase,
+                                             time: ProcessInfo.processInfo.systemUptime))
                 try? await Task.sleep(for: .milliseconds(40))
             }
         }
@@ -112,7 +116,7 @@ struct ContentView: View {
         await ramp(top, 0, 0.3, .downswing)
         var swing = SwingResult.sample.fresh()
         swing.faceAngle = 10
-        sender.send(swing)
+        sender.send(swing, impactPhoneTime: ProcessInfo.processInfo.systemUptime)
         await ramp(0, -1.2, 0.3, .followThrough)
         await ramp(-1.2, -1.2, 1.5, .followThrough)
     }

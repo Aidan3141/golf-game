@@ -12,6 +12,9 @@ final class WatchConnectivityManager: NSObject {
     private(set) var lastError: String?
 
     @ObservationIgnored var onMode: ((SwingMode) -> Void)?
+    // phone clock - watch clock (both systemUptime), from the reply timestamps
+    @ObservationIgnored private(set) var clock = ClockOffsetEstimator()
+    @ObservationIgnored private var pingTask: Task<Void, Never>?
     @ObservationIgnored private let session: WCSession? = WCSession.isSupported() ? .default : nil
 
     override init() {
@@ -35,15 +38,21 @@ final class WatchConnectivityManager: NSObject {
         }
     }
 
-    // small + fast. sendMessage if the phone app is up, otherwise queue it
-    func send(swing: SwingResult) {
+    // small + fast. sendMessage if the phone app is up, otherwise queue it.
+    // "it" = impact time in the phones clock so the headset can line the ball up w/ it
+    func send(swing: SwingResult, impactUptime: Double) {
         guard let session, let data = try? MessageEnvelope(payload: .swing(swing)).encoded() else { return }
-        let msg: [String: Any] = ["env": data]
+        let it = clock.toRemote(impactUptime)
+        var msg: [String: Any] = ["env": data]
+        if let it { msg["it"] = it }
         if session.isReachable {
             // @Sendable = not main actor. wc calls this on a background queue and a main actor
             // closure there trips swift 6's isolation check + crashes the app
+            // capture only sendable bits (Data, Double?), rebuild the dict in there
             session.sendMessage(msg, replyHandler: nil) { @Sendable _ in
-                WCSession.default.transferUserInfo(["env": data])
+                var backup: [String: Any] = ["env": data]
+                if let it { backup["it"] = it }
+                WCSession.default.transferUserInfo(backup)
             }
         } else {
             session.transferUserInfo(msg)
@@ -60,9 +69,11 @@ final class WatchConnectivityManager: NSObject {
     @ObservationIgnored private var sentInWindow = 0
 
     // ack gated: only one club msg in the air at a time. if the last one hasnt come back we
-    // skip this angle, the next fresh one goes instead. so a queue can never build up
-    // (fire n forget at 25hz piled up + showed up ~90s late)
-    func send(clubAngle: Double, phase: SwingPhase) {
+    // skip this sample, the next fresh one goes instead. so a queue can never build up
+    // (fire n forget at 25hz piled up + showed up ~90s late).
+    // sample time goes over in the PHONES clock ("st"), the reply carries the phones time ("t1")
+    // so every club msg is also a clock sync round trip
+    func send(club s: ClubSample) {
         guard let session, session.isReachable else { return }
         let now = ProcessInfo.processInfo.systemUptime
         if let since = inFlightSince, now - since < 0.5 {
@@ -72,30 +83,57 @@ final class WatchConnectivityManager: NSObject {
         inFlightSince = now
         sentCount += 1
         sentInWindow += 1
-        let msg: [String: Any] = [
-            "club": clubAngle, "ph": phase.rawValue,
-            "ts": Date.now.timeIntervalSince1970, "seq": sentCount,
-        ]
+        var msg: [String: Any] = ["c": s.angle, "w": s.omega, "ph": s.phase.rawValue, "t0": now]
+        if let t = s.time, let st = clock.toRemote(t) { msg["st"] = st }
         // both run on a wc background queue -> must be @Sendable (nonisolated), not main actor.
         // without it the first reply crashed the watch (dispatch_assert_queue_fail)
-        session.sendMessage(msg, replyHandler: { @Sendable _ in
-            Task { @MainActor in self.acked(sentAt: now) }
+        session.sendMessage(msg, replyHandler: { @Sendable reply in
+            let t3 = ProcessInfo.processInfo.systemUptime
+            let t1 = reply["t1"] as? Double
+            Task { @MainActor in self.acked(t0: now, t1: t1, t3: t3) }
         }, errorHandler: { @Sendable _ in
             Task { @MainActor in self.inFlightSince = nil }
         })
         updateStats(now)
     }
 
-    private func acked(sentAt: Double) {
-        let rtt = ProcessInfo.processInfo.systemUptime - sentAt
+    private func acked(t0: Double, t1: Double?, t3: Double) {
+        let rtt = t3 - t0
         rttAvg = rttAvg.map { $0 * 0.8 + rtt * 0.2 } ?? rtt
+        if let t1 { clock.add(sent: t0, remote: t1, received: t3) }
         inFlightSince = nil
+    }
+
+    // keep the clock sync warm before the first swing (club msgs only flow once ur addressed)
+    func startClockPings() {
+        guard pingTask == nil else { return }
+        pingTask = Task {
+            while !Task.isCancelled {
+                if let session, session.isReachable, inFlightSince == nil {
+                    let t0 = ProcessInfo.processInfo.systemUptime
+                    session.sendMessage(["ping": t0], replyHandler: { @Sendable reply in
+                        let t3 = ProcessInfo.processInfo.systemUptime
+                        let t1 = reply["t1"] as? Double
+                        Task { @MainActor in
+                            if let t1 { self.clock.add(sent: t0, remote: t1, received: t3) }
+                        }
+                    }, errorHandler: { @Sendable _ in })
+                }
+                try? await Task.sleep(for: .seconds(2))
+            }
+        }
+    }
+
+    func stopClockPings() {
+        pingTask?.cancel()
+        pingTask = nil
     }
 
     private func updateStats(_ now: Double) {
         guard now - statsWindowStart >= 1 else { return }
         let rate = Double(sentInWindow) / (now - statsWindowStart)
-        clubStats = String(format: "club %.0f/s · rtt %.0fms · skip %d", rate, (rttAvg ?? 0) * 1000, skipped)
+        let sync = clock.uncertainty.map { String(format: "±%.0fms", $0 * 1000) } ?? "no sync"
+        clubStats = String(format: "club %.0f/s · rtt %.0fms · %@", rate, (rttAvg ?? 0) * 1000, sync)
         statsWindowStart = now
         sentInWindow = 0
     }

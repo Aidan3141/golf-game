@@ -105,8 +105,8 @@ final class AppModel {
     init() {
         listen(to: mockSource, live: false)
         listen(to: network, live: true)
-        network.onClub = { [liveClub] angle, phase in
-            liveClub.update(angle: angle, phase: phase)
+        network.onClub = { [liveClub] sample in
+            liveClub.update(sample)
         }
         network.start()
     }

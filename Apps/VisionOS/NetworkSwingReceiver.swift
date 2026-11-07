@@ -9,16 +9,20 @@ import SwingKit
 final class NetworkSwingReceiver: SwingSource {
     private(set) var state = LinkState.off
     private(set) var received = 0
-    private(set) var lastLatency: Double?  // phone send -> here, secs
+    private(set) var lastLatency: Double?  // impact (or phone send) -> here, secs
 
-    @ObservationIgnored var onClub: ((Double, SwingPhase) -> Void)?
+    // live club sample, time already in this headsets uptime clock (phone converts it)
+    @ObservationIgnored var onClub: ((ClubSample) -> Void)?
     // live club debug, refreshed ~1/s
     private(set) var clubStats = "—"
     @ObservationIgnored private var clubWindowStart = 0.0
     @ObservationIgnored private var clubInWindow = 0
     @ObservationIgnored private var clubDropped = 0
     @ObservationIgnored private var ageAvg: Double?
-    @ObservationIgnored private var ageBaseline: Double?  // fastest delivery seen, soaks up clock skew
+    @ObservationIgnored private(set) var lastClubAge: Double?
+    // impact moments (headset uptime) for swings that came w/ one, so the ball can launch from it
+    @ObservationIgnored private var impactTimes: [UUID: Double] = [:]
+    static let maxClubAge = 0.5  // older than this its not worth drawing
     // tell the phone (-> watch) what kind of swing to look for. resent on every new connection
     @ObservationIgnored var mode = SwingMode.full {
         didSet { if mode != oldValue { sendMode() } }
@@ -106,8 +110,16 @@ final class NetworkSwingReceiver: SwingSource {
     }
 
     private func sendMode() {
-        guard let connection, let data = try? MessageFramer.frame(MessageEnvelope(payload: .mode(mode))) else { return }
+        send(MessageEnvelope(payload: .mode(mode)))
+    }
+
+    private func send(_ env: MessageEnvelope) {
+        guard let connection, let data = try? MessageFramer.frame(env) else { return }
         connection.send(content: data, completion: .idempotent)
+    }
+
+    func impactTime(for swing: UUID) -> Double? {
+        impactTimes[swing]
     }
 
     private func receive(on c: NWConnection) {
@@ -128,6 +140,32 @@ final class NetworkSwingReceiver: SwingSource {
         }
     }
 
+    // synced clocks so age is real: watch sample -> drawable here
+    private func clubArrived(_ sample: ClubSample) {
+        clubCount &+= 1
+        if clubCount % 25 == 1 { clubUpdates = clubCount }
+        let now = ProcessInfo.processInfo.systemUptime
+        if let t = sample.time {
+            let age = now - t
+            lastClubAge = age
+            ageAvg = ageAvg.map { $0 * 0.8 + age * 0.2 } ?? age
+            if age > Self.maxClubAge {
+                clubDropped += 1  // stale, drawing it would just be lag
+            } else {
+                onClub?(sample)
+            }
+        } else {
+            onClub?(sample)  // not synced yet, still better than nothing
+        }
+        clubInWindow += 1
+        if now - clubWindowStart >= 1 {
+            let age = ageAvg.map { String(format: "%.0f ms old", $0 * 1000) } ?? "not synced"
+            clubStats = String(format: "%.0f/s · %@ · %d stale", Double(clubInWindow) / (now - clubWindowStart), age, clubDropped)
+            clubWindowStart = now
+            clubInWindow = 0
+        }
+    }
+
     private func handle(_ env: MessageEnvelope) {
         guard env.version == MessageEnvelope.currentVersion else { return }
         switch env.payload {
@@ -135,30 +173,22 @@ final class NetworkSwingReceiver: SwingSource {
             received += 1
             lastLatency = Date.now.timeIntervalSince(env.sentAt)
             continuation.yield(s)
+        case .swingAt(let s, let impact):
+            received += 1
+            if let impact {
+                impactTimes[s.id] = impact
+                if impactTimes.count > 20 { impactTimes.removeAll() }
+                lastLatency = ProcessInfo.processInfo.systemUptime - impact
+            }
+            continuation.yield(s)
         case .hello(let name):
             state = .connected(name)
-        case .club(let angle, let phase):
-            clubCount &+= 1
-            if clubCount % 25 == 1 { clubUpdates = clubCount }
-            // age vs the watch clock. raw age has skew in it, so judge lag vs the best weve seen
-            let age = Date.now.timeIntervalSince(env.sentAt)
-            ageBaseline = min((ageBaseline ?? age) + 0.0005, age)
-            ageAvg = ageAvg.map { $0 * 0.8 + age * 0.2 } ?? age
-            let lag = age - (ageBaseline ?? age)
-            if lag > 0.35 {
-                clubDropped += 1  // stale, playing it would just be the 90s-late jitter again
-            } else {
-                onClub?(angle, phase)
-            }
-            clubInWindow += 1
-            let now = ProcessInfo.processInfo.systemUptime
-            if now - clubWindowStart >= 1 {
-                clubStats = String(format: "%.0f/s · %.0f ms old · %d stale", Double(clubInWindow) / (now - clubWindowStart),
-                                   (ageAvg ?? 0) * 1000, clubDropped)
-                clubWindowStart = now
-                clubInWindow = 0
-            }
-        case .ping, .mode:
+        case .clockPing(let t0):
+            // answer right away, the phone measures the round trip
+            send(MessageEnvelope(payload: .clockPong(t0: t0, t1: ProcessInfo.processInfo.systemUptime)))
+        case .clubSample(let sample):
+            clubArrived(sample)
+        case .ping, .mode, .clockPong:
             break
         }
     }

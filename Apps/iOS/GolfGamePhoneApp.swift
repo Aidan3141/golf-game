@@ -32,14 +32,14 @@ struct GolfGamePhoneApp: App {
                     sender.onMode = { [connectivity] mode in
                         connectivity.send(mode: mode)
                     }
-                    connectivity.onClub = { [sender] angle, phase, sentAt in
+                    connectivity.onClub = { [sender] sample in
                         // already too old to be useful, dont bother the headset
-                        guard Date.now.timeIntervalSince(sentAt) < 1 else { return }
-                        sender.send(clubAngle: angle, phase: phase, watchSentAt: sentAt)
+                        if let t = sample.time, ProcessInfo.processInfo.systemUptime - t > 1 { return }
+                        sender.send(club: sample)
                     }
-                    connectivity.onSwing = { [sender, feed, container] swing, sentAt in
-                        sender.send(swing)  // headset first, everything else can wait
-                        feed.add(swing, watchLatency: Date.now.timeIntervalSince(sentAt))
+                    connectivity.onSwing = { [sender, feed, container] swing, impact in
+                        sender.send(swing, impactPhoneTime: impact)  // headset first, everything else can wait
+                        feed.add(swing, watchLatency: impact.map { ProcessInfo.processInfo.systemUptime - $0 } ?? 0)
                         let ctx = container.mainContext
                         ctx.insert(SwingRecord(swing))
                         try? ctx.save()

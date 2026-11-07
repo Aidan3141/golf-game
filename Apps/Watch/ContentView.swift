@@ -41,14 +41,14 @@ struct ContentView: View {
             capture.handedness = handedness
             capture.saveSwingData = saveSwingData
             capture.tempoTaps = tempoTaps
-            capture.onImpact = { [connectivity] swing in
-                connectivity.send(swing: swing)
+            capture.onImpact = { [connectivity] swing, impact in
+                connectivity.send(swing: swing, impactUptime: impact)
             }
             connectivity.onMode = { [capture] mode in
                 capture.mode = mode
             }
-            capture.onClubAngle = { [connectivity] angle, phase in
-                connectivity.send(clubAngle: angle, phase: phase)
+            capture.onClubSample = { [connectivity] sample in
+                connectivity.send(club: sample)
             }
             capture.onSwingData = { [connectivity] rec in
                 connectivity.send(rec)
@@ -58,7 +58,13 @@ struct ContentView: View {
         .onChange(of: saveSwingData) { _, v in capture.saveSwingData = v }
         .onChange(of: tempoTaps) { _, v in capture.tempoTaps = v }
         .onChange(of: workout.isRunning) { _, running in
-            if running { capture.startStreaming() } else { capture.stopStreaming() }
+            if running {
+                capture.startStreaming()
+                connectivity.startClockPings()
+            } else {
+                capture.stopStreaming()
+                connectivity.stopClockPings()
+            }
         }
     }
 

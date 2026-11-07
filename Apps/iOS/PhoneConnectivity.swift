@@ -14,8 +14,10 @@ final class PhoneConnectivity: NSObject {
 
     @ObservationIgnored private let session: WCSession? = WCSession.isSupported() ? .default : nil
     @ObservationIgnored var onReceive: (() -> Void)?
-    @ObservationIgnored var onSwing: ((SwingResult, Date) -> Void)?  // swing + when watch sent it
-    @ObservationIgnored var onClub: ((Double, SwingPhase, Date) -> Void)?  // live club angle + when the watch sent it
+    // swing + impact time in this phones uptime clock (nil if the watch isnt synced yet)
+    @ObservationIgnored var onSwing: ((SwingResult, Double?) -> Void)?
+    // live club sample, time already in this phones uptime clock (the watch converts it)
+    @ObservationIgnored var onClub: ((ClubSample) -> Void)?
     private(set) var clubStats = "—"
     @ObservationIgnored private var clubInWindow = 0
     @ObservationIgnored private var clubWindowStart = 0.0
@@ -36,13 +38,17 @@ final class PhoneConnectivity: NSObject {
         }
     }
 
-    private func clubArrived(_ sentAt: Date) {
-        let age = Date.now.timeIntervalSince(sentAt)
-        clubAgeAvg = clubAgeAvg.map { $0 * 0.8 + age * 0.2 } ?? age
-        clubInWindow += 1
+    // age = how old the sample was when it got here (synced clocks, so its real)
+    private func clubArrived(_ sampleTime: Double?) {
         let now = ProcessInfo.processInfo.systemUptime
+        if let t = sampleTime {
+            let age = now - t
+            clubAgeAvg = clubAgeAvg.map { $0 * 0.8 + age * 0.2 } ?? age
+        }
+        clubInWindow += 1
         if now - clubWindowStart >= 1 {
-            clubStats = String(format: "%.0f/s · %.0f ms old", Double(clubInWindow) / (now - clubWindowStart), (clubAgeAvg ?? 0) * 1000)
+            let age = clubAgeAvg.map { String(format: "%.0f ms old", $0 * 1000) } ?? "watch not synced"
+            clubStats = String(format: "%.0f/s · %@", Double(clubInWindow) / (now - clubWindowStart), age)
             clubWindowStart = now
             clubInWindow = 0
         }
@@ -81,10 +87,11 @@ extension PhoneConnectivity: WCSessionDelegate {
         handle(message)
     }
 
-    // club msgs want a reply, thats the watchs ack gate. reply first, then do stuff
+    // club msgs + pings want a reply, thats the watchs ack gate AND its clock sync:
+    // t1 = when it landed here. reply first, then do stuff
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any],
                              replyHandler: @escaping ([String: Any]) -> Void) {
-        replyHandler([:])
+        replyHandler(["t1": ProcessInfo.processInfo.systemUptime])
         handle(message)
     }
 
@@ -93,22 +100,23 @@ extension PhoneConnectivity: WCSessionDelegate {
     }
 
     nonisolated private func handle(_ dict: [String: Any]) {
-        if let angle = dict["club"] as? Double {
+        if let angle = dict["c"] as? Double {
             let phase = (dict["ph"] as? String).flatMap(SwingPhase.init(rawValue:)) ?? .idle
-            let sentAt = (dict["ts"] as? Double).map(Date.init(timeIntervalSince1970:)) ?? .now
+            let sample = ClubSample(angle: angle, omega: dict["w"] as? Double ?? 0, phase: phase, time: dict["st"] as? Double)
             Task { @MainActor in
-                self.clubArrived(sentAt)
-                self.onClub?(angle, phase, sentAt)
+                self.clubArrived(sample.time)
+                self.onClub?(sample)
             }
             return
         }
+        if dict["ping"] != nil { return }  // clock ping, the reply was the point
         guard let data = dict["env"] as? Data,
               let env = try? MessageEnvelope.decode(data),
               case .swing(let swing) = env.payload else { return }
-        let sentAt = env.sentAt
+        let impact = dict["it"] as? Double
         Task { @MainActor in
             self.isReachable = true
-            self.onSwing?(swing, sentAt)
+            self.onSwing?(swing, impact)
         }
     }
 

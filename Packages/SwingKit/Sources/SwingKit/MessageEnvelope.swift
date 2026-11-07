@@ -5,12 +5,16 @@ public enum MessagePayload: Codable, Sendable, Hashable {
     case swing(SwingResult)
     case ping
     case hello(device: String)  // first thing sent on a new connection
-    case club(angle: Double, phase: SwingPhase)  // live swing angle (rad from address), ~25hz
+    case clubSample(ClubSample)  // live club, time already in the receivers clock
+    case swingAt(SwingResult, impactTime: Double?)  // + when impact happened, receivers uptime clock
+    case clockPing(t0: Double)  // phone -> avp, phones uptime
+    case clockPong(t0: Double, t1: Double)  // avp -> phone, t1 = avps uptime when the ping landed
     case mode(SwingMode)  // avp -> phone -> watch, full swing or putting
 }
 
 public struct MessageEnvelope: Codable, Sendable, Hashable {
-    public static let currentVersion = 1
+    // v2: live club carries angular velocity + synced sample time, clock ping/pong
+    public static let currentVersion = 2
 
     public let version: Int
     public let sentAt: Date
