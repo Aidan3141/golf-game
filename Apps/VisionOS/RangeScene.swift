@@ -38,7 +38,8 @@ final class RangeScene {
         addAmbience()
         await addSky()
         let grass = await loadGrass()
-        addNearGround(grass)
+        addGround(grass)
+        addFairway(grass)
         addTeeBox()
         for yd in [50, 100, 150, 200, 250] {
             addFlag(yards: yd)
@@ -91,10 +92,10 @@ final class RangeScene {
 
     // MARK: sky + lighting
 
-    // sunset fairway (poly haven, cc0) is a real 360 photo of a golf hole, ground + all.
-    // yaw turns it so the photos fairway (toward the sunset + pond) runs down our target line
-    static let skyYaw: Float = .pi / 2 + 0.7
-    static let iblExposure: Float = 0.5
+    // kloppenheim 06 pure sky (poly haven, cc0): golden hour, no ground in it so our flat grass
+    // runs to the horizon + nothing floats. yaw puts the low sun just right of the target line
+    static let skyYaw: Float = 1.8
+    static let iblExposure: Float = 0.85
 
     private func addSky() async {
         // visible backdrop: big inside-out sphere w/ the 8k jpg
@@ -178,34 +179,28 @@ final class RangeScene {
         return d
     }
 
-    // the photo has its own ground (fairway, rough, trees) so the 3d grass only covers the tee
-    // area: sharp + opaque out to 5m, then fades out in rings by 12m so it melts into the
-    // photo. past that the flags + ball sit on the photos ground at the right spots bc it was
-    // shot from about eye height
-    static let groundSolid: Float = 5
-    static let groundFadeEnd: Float = 12
-    static let groundTint = UIColor(red: 0.22, green: 0.42, blue: 0.10, alpha: 1)  // matched to the photos sunset grass
+    // flat grass all the way out. opaque to 300m, then rings fade it out by 1500m so the far
+    // grass melts into the skys hazy lower half instead of ending in a hard line
+    static let groundSolid: Float = 300
+    static let groundFadeEnd: Float = 1500
+    static let roughTint = UIColor(red: 0.40, green: 0.58, blue: 0.27, alpha: 1)
 
-    private func addNearGround(_ grass: Grass) {
-        let tile: Float = 4
-        // the ring mesh has no tangents so a normal map turns into garbage normals that mirror
-        // the purple sky (looked gray). plain shading + low specular instead
-        var flat = grass
-        flat.normal = nil
+    private func addGround(_ grass: Grass) {
+        let tile: Float = 6
         let center = Self.teePosition
         let solid = ModelEntity(
-            mesh: (try? Self.ringMesh(inner: 0, outer: Self.groundSolid, tile: tile)) ?? .generatePlane(width: 30, depth: 30),
-            materials: [nearMaterial(flat, tile: tile)]
+            mesh: (try? Self.ringMesh(inner: 0, outer: Self.groundSolid, segments: 128, tile: tile)) ?? .generatePlane(width: 600, depth: 600),
+            materials: [groundMaterial(grass, tint: Self.roughTint, tile: tile)]
         )
         solid.position = center + [0, -0.01, 0]
         root.addChild(solid)
 
-        let rings = 10
+        let rings = 12
         let step = (Self.groundFadeEnd - Self.groundSolid) / Float(rings)
         for i in 0..<rings {
             let inner = Self.groundSolid + Float(i) * step
-            guard let mesh = try? Self.ringMesh(inner: inner, outer: inner + step, tile: tile) else { continue }
-            var mat = nearMaterial(flat, tile: tile)
+            guard let mesh = try? Self.ringMesh(inner: inner, outer: inner + step, segments: 128, tile: tile) else { continue }
+            var mat = groundMaterial(grass, tint: Self.roughTint, tile: tile)
             let fade = 1 - (Float(i) + 0.5) / Float(rings)
             mat.blending = .transparent(opacity: .init(floatLiteral: fade * fade * (3 - 2 * fade)))
             let ring = ModelEntity(mesh: mesh, materials: [mat])
@@ -214,10 +209,27 @@ final class RangeScene {
         }
     }
 
-    private func nearMaterial(_ grass: Grass, tile: Float) -> PhysicallyBasedMaterial {
-        var m = grassMaterial(grass, tint: Self.groundTint, size: [tile, tile], tile: tile)
-        m.specular = 0.1
+    // uvs are already in tiles (ringMesh), so no extra texture scaling
+    private func groundMaterial(_ grass: Grass, tint: UIColor, tile: Float) -> PhysicallyBasedMaterial {
+        var m = grassMaterial(grass, tint: tint, size: [tile, tile], tile: tile)
+        m.specular = 0.2
         return m
+    }
+
+    // mowed stripes down the target line, sit just above the rough
+    private func addFairway(_ grass: Grass) {
+        let stripeWidth: Float = 9
+        let length: Float = 330
+        let light = UIColor(red: 0.55, green: 0.78, blue: 0.38, alpha: 1)
+        let dark = UIColor(red: 0.45, green: 0.67, blue: 0.31, alpha: 1)
+        for i in -4..<4 {
+            let stripe = ModelEntity(
+                mesh: .generatePlane(width: stripeWidth, depth: length),
+                materials: [grassMaterial(grass, tint: i.isMultiple(of: 2) ? light : dark, size: [stripeWidth, length])]
+            )
+            stripe.position = [(Float(i) + 0.5) * stripeWidth, 0.002, -length / 2 - 2]
+            root.addChild(stripe)
+        }
     }
 
     // flat ring (or disc if inner = 0) facing up, uvs in tiles so the grass repeats every `tile` m
@@ -242,6 +254,9 @@ final class RangeScene {
         d.positions = MeshBuffers.Positions(pos)
         d.normals = MeshBuffers.Normals(Array(repeating: SIMD3<Float>(0, 1, 0), count: pos.count))
         d.textureCoordinates = MeshBuffers.TextureCoordinates(uv)
+        // u runs along +x, v along +z -> constant tangents, so the grass normal map works
+        d.tangents = MeshBuffers.Tangents(Array(repeating: SIMD3<Float>(1, 0, 0), count: pos.count))
+        d.bitangents = MeshBuffers.Tangents(Array(repeating: SIMD3<Float>(0, 0, 1), count: pos.count))
         d.primitives = .triangles(idx)
         return try MeshResource.generate(from: [d])
     }
@@ -270,7 +285,7 @@ final class RangeScene {
 
         // little target green around the pin
         var greenMat = PhysicallyBasedMaterial()
-        greenMat.baseColor = .init(tint: UIColor(red: 0.26, green: 0.5, blue: 0.16, alpha: 1))  // dusk green, the old minty one glowed
+        greenMat.baseColor = .init(tint: UIColor(red: 0.42, green: 0.72, blue: 0.32, alpha: 1))  // a shade lighter than the fairway
         greenMat.roughness = 0.7
         let green = ModelEntity(mesh: .generateCylinder(height: 0.02, radius: 9), materials: [greenMat])
         green.position.y = 0.01
