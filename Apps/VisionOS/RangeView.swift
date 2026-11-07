@@ -35,6 +35,11 @@ struct RangeView: View {
                 s.root.orientation = simd_quatf(angle: .pi * 0.25, axis: [0, 1, 0])
                 s.root.position = [60, -10, 40]
             }
+            // `-behind`: behind ball view so the fixed sim camera looks down the target line
+            if ProcessInfo.processInfo.arguments.contains("-behind") {
+                appModel.viewMode = .behind
+                s.applyView(.behind, hand: appModel.handedness)
+            }
             // `-raise`: lift the world 1.1m so the fixed sim camera can see the ball + club
             if ProcessInfo.processInfo.arguments.contains("-raise") {
                 s.root.position.y += 1.1

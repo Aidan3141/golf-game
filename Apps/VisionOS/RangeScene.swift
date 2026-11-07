@@ -38,8 +38,7 @@ final class RangeScene {
         addAmbience()
         await addSky()
         let grass = await loadGrass()
-        addGround(grass)
-        addFairway(grass)
+        addNearGround(grass)
         addTeeBox()
         for yd in [50, 100, 150, 200, 250] {
             addFlag(yards: yd)
@@ -92,25 +91,30 @@ final class RangeScene {
 
     // MARK: sky + lighting
 
+    // sunset fairway (poly haven, cc0) is a real 360 photo of a golf hole, ground + all.
+    // yaw turns it so the photos fairway (toward the sunset + pond) runs down our target line
+    static let skyYaw: Float = .pi / 2 + 0.7
+    static let iblExposure: Float = 0.5
+
     private func addSky() async {
-        // visible sky: big inside-out sphere w/ the 8k jpg
-        if let url = Bundle.main.url(forResource: "sky_8k", withExtension: "jpg"),
+        // visible backdrop: big inside-out sphere w/ the 8k jpg
+        if let url = Bundle.main.url(forResource: "range_sky", withExtension: "jpg"),
            let tex = try? await TextureResource(contentsOf: url, options: .init(semantic: .color)) {
             var mat = UnlitMaterial()
             mat.color = .init(tint: .white, texture: .init(tex))
             let sky = ModelEntity(mesh: .generateSphere(radius: 1900), materials: [mat])
             sky.scale = [-1, 1, 1]  // flip so we see the inside
-            sky.orientation = simd_quatf(angle: .pi * 0.8, axis: [0, 1, 0])  // sun off to the side
+            sky.orientation = simd_quatf(angle: Self.skyYaw, axis: [0, 1, 0])
             root.addChild(sky)
         }
 
-        // lighting: image based light from the 2k hdr
-        if let url = Bundle.main.url(forResource: "sky_2k", withExtension: "hdr"),
+        // lighting: image based light from the 2k hdr, same yaw so the sun matches the photo
+        if let url = Bundle.main.url(forResource: "range_ibl", withExtension: "hdr"),
            let src = CGImageSourceCreateWithURL(url as CFURL, nil),
            let image = CGImageSourceCreateImageAtIndex(src, 0, nil),
            let env = try? await EnvironmentResource(equirectangular: image, options: .init()) {
-            iblRoot.components.set(ImageBasedLightComponent(source: .single(env), intensityExponent: 0.4))
-            iblRoot.orientation = simd_quatf(angle: .pi * 0.8, axis: [0, 1, 0])
+            iblRoot.components.set(ImageBasedLightComponent(source: .single(env), intensityExponent: Self.iblExposure))
+            iblRoot.orientation = simd_quatf(angle: Self.skyYaw, axis: [0, 1, 0])
         }
     }
 
@@ -174,31 +178,72 @@ final class RangeScene {
         return d
     }
 
-    private func addGround(_ grass: Grass) {
-        let size: Float = 2600
-        let rough = UIColor(red: 0.42, green: 0.62, blue: 0.30, alpha: 1)
-        let ground = ModelEntity(
-            mesh: .generatePlane(width: size, depth: size),
-            materials: [grassMaterial(grass, tint: rough, size: [size, size], tile: 6)]
+    // the photo has its own ground (fairway, rough, trees) so the 3d grass only covers the tee
+    // area: sharp + opaque out to 5m, then fades out in rings by 12m so it melts into the
+    // photo. past that the flags + ball sit on the photos ground at the right spots bc it was
+    // shot from about eye height
+    static let groundSolid: Float = 5
+    static let groundFadeEnd: Float = 12
+    static let groundTint = UIColor(red: 0.22, green: 0.42, blue: 0.10, alpha: 1)  // matched to the photos sunset grass
+
+    private func addNearGround(_ grass: Grass) {
+        let tile: Float = 4
+        // the ring mesh has no tangents so a normal map turns into garbage normals that mirror
+        // the purple sky (looked gray). plain shading + low specular instead
+        var flat = grass
+        flat.normal = nil
+        let center = Self.teePosition
+        let solid = ModelEntity(
+            mesh: (try? Self.ringMesh(inner: 0, outer: Self.groundSolid, tile: tile)) ?? .generatePlane(width: 30, depth: 30),
+            materials: [nearMaterial(flat, tile: tile)]
         )
-        ground.position = [0, -0.01, 0]
-        root.addChild(ground)
+        solid.position = center + [0, -0.01, 0]
+        root.addChild(solid)
+
+        let rings = 10
+        let step = (Self.groundFadeEnd - Self.groundSolid) / Float(rings)
+        for i in 0..<rings {
+            let inner = Self.groundSolid + Float(i) * step
+            guard let mesh = try? Self.ringMesh(inner: inner, outer: inner + step, tile: tile) else { continue }
+            var mat = nearMaterial(flat, tile: tile)
+            let fade = 1 - (Float(i) + 0.5) / Float(rings)
+            mat.blending = .transparent(opacity: .init(floatLiteral: fade * fade * (3 - 2 * fade)))
+            let ring = ModelEntity(mesh: mesh, materials: [mat])
+            ring.position = center + [0, -0.01, 0]
+            root.addChild(ring)
+        }
     }
 
-    // mowed stripes down the target line
-    private func addFairway(_ grass: Grass) {
-        let stripeWidth: Float = 9
-        let length: Float = 330
-        let light = UIColor(red: 0.62, green: 0.85, blue: 0.45, alpha: 1)
-        let dark = UIColor(red: 0.50, green: 0.74, blue: 0.36, alpha: 1)
-        for i in -4..<4 {
-            let stripe = ModelEntity(
-                mesh: .generatePlane(width: stripeWidth, depth: length),
-                materials: [grassMaterial(grass, tint: i.isMultiple(of: 2) ? light : dark, size: [stripeWidth, length])]
-            )
-            stripe.position = [(Float(i) + 0.5) * stripeWidth, 0, -length / 2 - 2]
-            root.addChild(stripe)
+    private func nearMaterial(_ grass: Grass, tile: Float) -> PhysicallyBasedMaterial {
+        var m = grassMaterial(grass, tint: Self.groundTint, size: [tile, tile], tile: tile)
+        m.specular = 0.1
+        return m
+    }
+
+    // flat ring (or disc if inner = 0) facing up, uvs in tiles so the grass repeats every `tile` m
+    static func ringMesh(inner: Float, outer: Float, segments: Int = 96, tile: Float) throws -> MeshResource {
+        var pos: [SIMD3<Float>] = []
+        var uv: [SIMD2<Float>] = []
+        var idx: [UInt32] = []
+        for i in 0...segments {
+            let a = Float(i) / Float(segments) * 2 * .pi
+            for r in [inner, outer] {
+                let p = SIMD3<Float>(cos(a) * r, 0, sin(a) * r)
+                pos.append(p)
+                uv.append(SIMD2(p.x, p.z) / tile)
+            }
         }
+        for i in 0..<segments {
+            let a = UInt32(i * 2)
+            // ccw seen from above so the face points up
+            idx += [a, a + 2, a + 1, a + 1, a + 2, a + 3]
+        }
+        var d = MeshDescriptor(name: "ring")
+        d.positions = MeshBuffers.Positions(pos)
+        d.normals = MeshBuffers.Normals(Array(repeating: SIMD3<Float>(0, 1, 0), count: pos.count))
+        d.textureCoordinates = MeshBuffers.TextureCoordinates(uv)
+        d.primitives = .triangles(idx)
+        return try MeshResource.generate(from: [d])
     }
 
     private func addTeeBox() {
@@ -225,7 +270,7 @@ final class RangeScene {
 
         // little target green around the pin
         var greenMat = PhysicallyBasedMaterial()
-        greenMat.baseColor = .init(tint: UIColor(red: 0.45, green: 0.8, blue: 0.35, alpha: 1))
+        greenMat.baseColor = .init(tint: UIColor(red: 0.26, green: 0.5, blue: 0.16, alpha: 1))  // dusk green, the old minty one glowed
         greenMat.roughness = 0.7
         let green = ModelEntity(mesh: .generateCylinder(height: 0.02, radius: 9), materials: [greenMat])
         green.position.y = 0.01

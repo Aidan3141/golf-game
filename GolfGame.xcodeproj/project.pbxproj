@@ -12,7 +12,6 @@
 		0C6119EF850F62B1A668724A /* WorkoutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7435528553F64B82B2C44FD6 /* WorkoutManager.swift */; };
 		126FD9B6909D82AA99B7FE14 /* grass_diff.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 6066669BB0A652EA632193A9 /* grass_diff.jpg */; };
 		14C41B2579A23B2427F71B45 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9C6C7915F88CB3B91DCB69 /* HistoryView.swift */; };
-		19A055685C9F5B9C2A068F5D /* sky_2k.hdr in Resources */ = {isa = PBXBuildFile; fileRef = AEB0ADF0B9CABA3F3657A93F /* sky_2k.hdr */; };
 		1A0AA9DA830B235CD8637A16 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D651FAC98A7B599BF438465E /* ContentView.swift */; };
 		1DF0849AE34493438220F339 /* SwingLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18193F50C9FD7B5CD1C82554 /* SwingLogger.swift */; };
 		1F9FC25B9B0668A884F3DF15 /* SwingKit in Frameworks */ = {isa = PBXBuildFile; productRef = 773D70B0D6CFA15F475B0BEC /* SwingKit */; };
@@ -25,10 +24,12 @@
 		476DFB26D34BD3D35F91D324 /* tick.wav in Resources */ = {isa = PBXBuildFile; fileRef = A2B361C1C09CBE56BE935AFD /* tick.wav */; };
 		4A8BBBD309077C9E4EC26309 /* GolfGame Watch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 2CC4CACE9F42E379F574F0B3 /* GolfGame Watch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4CB92CD1A7A10A79805A6A6D /* SwingKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5B39E18C1256D07B652E0CA2 /* SwingKit */; };
+		4F18888349E79FFDC3410400 /* range_ibl.hdr in Resources */ = {isa = PBXBuildFile; fileRef = CD721FA21D696604A904577A /* range_ibl.hdr */; };
 		53B5A1C24FFDBFD4D4F874C7 /* PuttingScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 735897ACDFF71E91FA79EBE5 /* PuttingScene.swift */; };
 		656D893F9AD15389CF7360A5 /* WatchBLELink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42FC9EB6BF04DA2566D905EA /* WatchBLELink.swift */; };
 		69A755D09B28F515DA55103D /* LiveClub.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196209FD2DFF8E6D0CC6C427 /* LiveClub.swift */; };
 		72DD850E363D892F93A6B850 /* PhoneBLELink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE562B5B44CC51CE4787A92 /* PhoneBLELink.swift */; };
+		7BDC2696FAF71AC717A3464B /* range_sky.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 2C7E0E504DBD0570B083F99D /* range_sky.jpg */; };
 		7D27A2EA4EEBA7018F381941 /* ClubSwing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8969E1D9A293F11C22CF993A /* ClubSwing.swift */; };
 		8161B636D2E8B35E0415238C /* tock.wav in Resources */ = {isa = PBXBuildFile; fileRef = F8BB64FDFBEE59C9C5E588F4 /* tock.wav */; };
 		9309496F7DD34313DDFAEC8B /* BallFlightSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3CD6BF1FB87A541E10274F1 /* BallFlightSystem.swift */; };
@@ -45,7 +46,6 @@
 		C66F3CFE3B3C66C81ADAEEFC /* GolfGamePhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2790370EF5839C892C8E2E0B /* GolfGamePhoneApp.swift */; };
 		C86E7D505A5F4CE31805CC07 /* NetworkSwingReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = E447F7DF405F22D28887C418 /* NetworkSwingReceiver.swift */; };
 		C902CB6874DD5723F1079187 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8653E96DDEF669EE82BEF30 /* AppModel.swift */; };
-		CD35C0CDC1D016F142D9B8E2 /* sky_8k.jpg in Resources */ = {isa = PBXBuildFile; fileRef = C22413A6D128CAFDD822D21F /* sky_8k.jpg */; };
 		CDB4F6761304BC6DA5565F70 /* impact.wav in Resources */ = {isa = PBXBuildFile; fileRef = A41432CE381D9D1D8A70D739 /* impact.wav */; };
 		D6351A3F4BDF250B2F132F65 /* RecordingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFF6B93E682ABA098DBC89E3 /* RecordingStore.swift */; };
 		DBB94419E6BBB0D3D7CA4081 /* PhoneConnectivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 328B73A052ABFD9704096BF8 /* PhoneConnectivity.swift */; };
@@ -96,6 +96,7 @@
 		273BA119683830F4E8218DD3 /* SwingRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingRecord.swift; sourceTree = "<group>"; };
 		2790370EF5839C892C8E2E0B /* GolfGamePhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfGamePhoneApp.swift; sourceTree = "<group>"; };
 		29B4B5717E7CF8E3EA70E1EF /* grass_rough.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = grass_rough.jpg; sourceTree = "<group>"; };
+		2C7E0E504DBD0570B083F99D /* range_sky.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = range_sky.jpg; sourceTree = "<group>"; };
 		2CC4CACE9F42E379F574F0B3 /* GolfGame Watch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "GolfGame Watch.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2E6A2348F74D7432FB82FC20 /* GolfGame.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GolfGame.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2E7B14292495DF8D1982A745 /* PuttingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuttingView.swift; sourceTree = "<group>"; };
@@ -123,14 +124,13 @@
 		A41432CE381D9D1D8A70D739 /* impact.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = impact.wav; sourceTree = "<group>"; };
 		A8329AB5DD72E1794D97E187 /* TestSwingSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSwingSettings.swift; sourceTree = "<group>"; };
 		ADE9903E96AB9E206EE0F8B1 /* GameAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameAudio.swift; sourceTree = "<group>"; };
-		AEB0ADF0B9CABA3F3657A93F /* sky_2k.hdr */ = {isa = PBXFileReference; path = sky_2k.hdr; sourceTree = "<group>"; };
 		B1551B02154BB7B1B0CC271B /* NetworkSwingSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSwingSender.swift; sourceTree = "<group>"; };
 		B69820316EF3A9470426064C /* SwingFeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingFeed.swift; sourceTree = "<group>"; };
 		BCC30F579139D647C7B66404 /* RecordingDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingDetailView.swift; sourceTree = "<group>"; };
 		C037CA7AC5B68AC41903C9CF /* ambience.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = ambience.wav; sourceTree = "<group>"; };
-		C22413A6D128CAFDD822D21F /* sky_8k.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = sky_8k.jpg; sourceTree = "<group>"; };
 		C3CD6BF1FB87A541E10274F1 /* BallFlightSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BallFlightSystem.swift; sourceTree = "<group>"; };
 		C8F4657D5DB94EDF33135033 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		CD721FA21D696604A904577A /* range_ibl.hdr */ = {isa = PBXFileReference; path = range_ibl.hdr; sourceTree = "<group>"; };
 		D32E6969DBCDF49EA2838F1C /* GolfGameWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GolfGameWatch.entitlements; sourceTree = "<group>"; };
 		D651FAC98A7B599BF438465E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D857946D29229B37156D7E1B /* GolfGame iPhone.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "GolfGame iPhone.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -223,8 +223,8 @@
 				6066669BB0A652EA632193A9 /* grass_diff.jpg */,
 				058F9DD72DAC2CA3A0AFE854 /* grass_nor.jpg */,
 				29B4B5717E7CF8E3EA70E1EF /* grass_rough.jpg */,
-				AEB0ADF0B9CABA3F3657A93F /* sky_2k.hdr */,
-				C22413A6D128CAFDD822D21F /* sky_8k.jpg */,
+				CD721FA21D696604A904577A /* range_ibl.hdr */,
+				2C7E0E504DBD0570B083F99D /* range_sky.jpg */,
 				465DBDE735A14A754D8E3BDA /* Sounds */,
 			);
 			path = Resources;
@@ -422,8 +422,8 @@
 				FA9E16513C6754092D2D740C /* grass_rough.jpg in Resources */,
 				CDB4F6761304BC6DA5565F70 /* impact.wav in Resources */,
 				C24DB66ABB3C737A37B503CC /* land.wav in Resources */,
-				19A055685C9F5B9C2A068F5D /* sky_2k.hdr in Resources */,
-				CD35C0CDC1D016F142D9B8E2 /* sky_8k.jpg in Resources */,
+				4F18888349E79FFDC3410400 /* range_ibl.hdr in Resources */,
+				7BDC2696FAF71AC717A3464B /* range_sky.jpg in Resources */,
 				476DFB26D34BD3D35F91D324 /* tick.wav in Resources */,
 				8161B636D2E8B35E0415238C /* tock.wav in Resources */,
 			);
