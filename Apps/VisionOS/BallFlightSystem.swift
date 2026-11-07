@@ -93,12 +93,12 @@ struct BallFlightSystem: System {
                     f.landed = true
                     // boosted, its usually 150m away
                     GameAudio.shared.play(GameAudio.shared.land, at: f.points[f.landingIndex], in: f.effects, gain: 18)
-                    Self.addMarker(at: f.points[f.landingIndex], text: String(format: "%.0f carry", f.carryYards),
-                                   color: .systemYellow, in: f.effects)
+                    Self.addMarker(at: f.points[f.landingIndex], value: String(format: "%.0f", f.carryYards),
+                                   caption: "carry", color: .systemYellow, in: f.effects)
                 }
 
                 if f.index >= f.points.count - 1 {
-                    Self.addMarker(at: pos, text: String(format: "%.0f yd", f.totalYards), color: .white, in: f.effects)
+                    Self.addMarker(at: pos, value: String(format: "%.0f", f.totalYards), caption: "total", color: .white, in: f.effects)
                     ball.components.remove(BallFlightComponent.self)
                 } else {
                     ball.components.set(f)
@@ -129,7 +129,7 @@ struct BallFlightSystem: System {
     }
 
     @MainActor
-    private static func addMarker(at p: SIMD3<Float>, text: String, color: UIColor, in parent: Entity) {
+    private static func addMarker(at p: SIMD3<Float>, value: String, caption: String, color: UIColor, in parent: Entity) {
         let dist = simd_distance(parent.convert(position: p, to: nil), headPosition)
         let s = max(1, dist / 40)
         let ring = ModelEntity(
@@ -139,7 +139,7 @@ struct BallFlightSystem: System {
         ring.position = [p.x, 0.02, p.z]
         parent.addChild(ring)
 
-        let label = RangeScene.makeLabel(text, height: 0.8 * s, color: color)
+        let label = RangeScene.makeSign(value, caption: caption, accent: color, height: 0.8 * s)
         label.position = [p.x, 2.2 * s, p.z]
         parent.addChild(label)
     }

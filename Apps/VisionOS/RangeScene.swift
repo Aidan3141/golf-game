@@ -142,13 +142,13 @@ final class RangeScene {
             return try? await TextureResource(contentsOf: url, options: .init(semantic: semantic))
         }
         return Grass(
-            color: await load("grass_diff", .color),
+            color: await load("grass_vivid", .color),  // grass_diff made gray + bright so the tint is the real color
             normal: await load("grass_nor", .normal),
             roughness: await load("grass_rough", .raw)
         )
     }
 
-    // texture is leafy/brown so tint it green. tile = meters per texture repeat
+    // texture is neutral bright gray (grass_vivid) so the tint is pretty much the color u see. tile = meters per texture repeat
     private func grassMaterial(_ grass: Grass, tint: UIColor, size: SIMD2<Float>, tile: Float = 4) -> PhysicallyBasedMaterial {
         let sampler = MaterialParameters.Texture.Sampler(Self.repeatSampler)
         var mat = PhysicallyBasedMaterial()
@@ -183,7 +183,7 @@ final class RangeScene {
     // grass melts into the skys hazy lower half instead of ending in a hard line
     static let groundSolid: Float = 300
     static let groundFadeEnd: Float = 1500
-    static let roughTint = UIColor(red: 0.40, green: 0.58, blue: 0.27, alpha: 1)
+    static let roughTint = UIColor(red: 0.33, green: 0.70, blue: 0.21, alpha: 1)  // vivid, close to the target greens
 
     private func addGround(_ grass: Grass) {
         let tile: Float = 6
@@ -220,8 +220,8 @@ final class RangeScene {
     private func addFairway(_ grass: Grass) {
         let stripeWidth: Float = 9
         let length: Float = 330
-        let light = UIColor(red: 0.55, green: 0.78, blue: 0.38, alpha: 1)
-        let dark = UIColor(red: 0.45, green: 0.67, blue: 0.31, alpha: 1)
+        let light = UIColor(red: 0.43, green: 0.84, blue: 0.29, alpha: 1)
+        let dark = UIColor(red: 0.36, green: 0.75, blue: 0.24, alpha: 1)
         for i in -4..<4 {
             let stripe = ModelEntity(
                 mesh: .generatePlane(width: stripeWidth, depth: length),
@@ -285,7 +285,7 @@ final class RangeScene {
 
         // little target green around the pin
         var greenMat = PhysicallyBasedMaterial()
-        greenMat.baseColor = .init(tint: UIColor(red: 0.42, green: 0.72, blue: 0.32, alpha: 1))  // a shade lighter than the fairway
+        greenMat.baseColor = .init(tint: UIColor(red: 0.58, green: 0.93, blue: 0.42, alpha: 1))  // a shade lighter than the fairway
         greenMat.roughness = 0.7
         let green = ModelEntity(mesh: .generateCylinder(height: 0.02, radius: 9), materials: [greenMat])
         green.position.y = 0.01
@@ -309,7 +309,7 @@ final class RangeScene {
         cloth.position = [0.45 * s, 2.7 * s, 0]
         flag.addChild(cloth)
 
-        let label = Self.makeLabel("\(yards)", height: 1.2 * s, color: .white)
+        let label = Self.makeSign("\(yards)", accent: color, height: 1.1 * s)
         label.position.y = 3.9 * s
         flag.addChild(label)
 
@@ -317,22 +317,60 @@ final class RangeScene {
     }
 
     // billboard text, always faces you
-    static func makeLabel(_ text: String, height: Float, color: UIColor) -> Entity {
-        let mesh = MeshResource.generateText(
-            text,
-            extrusionDepth: 0.01,
-            font: .systemFont(ofSize: 1, weight: .heavy),
-            containerFrame: .zero,
-            alignment: .center,
-            lineBreakMode: .byClipping
-        )
-        let model = ModelEntity(mesh: mesh, materials: [UnlitMaterial(color: color)])
-        // center it, text mesh origin is bottom left-ish
-        let b = mesh.bounds
-        model.position = [-b.center.x, -b.center.y, 0]
+    // one sign style for every number in the range: dark rounded plate (reads against bright
+    // sky), big white number, smaller unit, colored accent bar + optional caption above.
+    // `height` = how tall the number is in meters. always turns to face u
+    static func makeSign(_ value: String, unit: String? = "yd", caption: String? = nil, accent: UIColor, height: Float) -> Entity {
+        func text(_ t: String, size: CGFloat, weight: UIFont.Weight) -> MeshResource {
+            .generateText(t, extrusionDepth: 0.005, font: .systemFont(ofSize: size, weight: weight),
+                          containerFrame: .zero, alignment: .left, lineBreakMode: .byClipping)
+        }
+        let content = Entity()
+        let numMesh = text(value, size: 1, weight: .heavy)
+        let num = ModelEntity(mesh: numMesh, materials: [UnlitMaterial(color: .white)])
+        let nb = numMesh.bounds
+        num.position = [-nb.min.x, -nb.min.y, 0]
+        content.addChild(num)
+        var right = nb.extents.x
+        var top = nb.extents.y
+
+        if let unit {
+            let m = text(unit, size: 0.42, weight: .bold)
+            let e = ModelEntity(mesh: m, materials: [UnlitMaterial(color: UIColor(white: 0.85, alpha: 1))])
+            e.position = [right + 0.1 - m.bounds.min.x, -m.bounds.min.y, 0]
+            content.addChild(e)
+            right += 0.1 + m.bounds.extents.x
+        }
+        if let caption {
+            let m = text(caption.uppercased(), size: 0.34, weight: .heavy)
+            let e = ModelEntity(mesh: m, materials: [UnlitMaterial(color: accent)])
+            e.position = [-m.bounds.min.x, top + 0.14 - m.bounds.min.y, 0]
+            content.addChild(e)
+            right = max(right, m.bounds.extents.x)
+            top += 0.14 + m.bounds.extents.y
+        }
+
+        let pad: Float = 0.26
+        let bar: Float = 0.1
+        let gap: Float = 0.16  // bar -> text
+        let left = -(gap + bar + 0.14)
+        let w = right + pad - left
+        let h = top + pad * 2
+        // plate + accent bar behind the text
+        var plateMat = UnlitMaterial(color: UIColor(white: 0.05, alpha: 1))
+        plateMat.blending = .transparent(opacity: .init(floatLiteral: 0.62))
+        let plate = ModelEntity(mesh: .generatePlane(width: w, height: h, cornerRadius: min(0.3, h / 2)), materials: [plateMat])
+        plate.position = [(left + right + pad) / 2, top / 2, -0.02]
+        let accentBar = ModelEntity(mesh: .generatePlane(width: bar, height: h - pad, cornerRadius: bar / 2), materials: [UnlitMaterial(color: accent)])
+        accentBar.position = [-gap - bar / 2, top / 2, -0.01]
+        content.addChild(plate)
+        content.addChild(accentBar)
+        // center the whole sign on the holder
+        content.position = [-(left + right + pad) / 2, -top / 2, 0]
+
         let holder = Entity()
-        holder.scale = .init(repeating: height / max(b.extents.y, 0.001))
-        holder.addChild(model)
+        holder.scale = .init(repeating: height)
+        holder.addChild(content)
         holder.components.set(BillboardComponent())
         return holder
     }

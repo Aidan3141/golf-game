@@ -6,7 +6,8 @@ every 3d model / texture / hdri / sound in the project + its license. cc0 prefer
 |---|---|---|---|---|
 | `Apps/VisionOS/Resources/range_sky.jpg` | range sky (golden hour, no ground, tonemapped jpg downsized to 8k) | [Kloppenheim 06 (Pure Sky)](https://polyhaven.com/a/kloppenheim_06_puresky) | Greg Zaal, Jarod Guest | CC0 |
 | `Apps/VisionOS/Resources/range_ibl.hdr` | image based lighting for the range | same as above, 2k hdr | Greg Zaal, Jarod Guest | CC0 |
-| `Apps/VisionOS/Resources/grass_diff.jpg` | range grass + fairway stripes + putting green (tinted in code, its leafy/brown raw) | [Leafy Grass](https://polyhaven.com/a/leafy_grass) 2k | Charlotte Baglioni | CC0 |
+| `Apps/VisionOS/Resources/grass_diff.jpg` | putting green (tinted in code, its leafy/brown raw) | [Leafy Grass](https://polyhaven.com/a/leafy_grass) 2k | Charlotte Baglioni | CC0 |
+| `Apps/VisionOS/Resources/grass_vivid.jpg` | range grass + fairway stripes. grass_diff turned gray + bright so the tint is the real color (vivid green) | Leafy Grass 2k, edited | Charlotte Baglioni | CC0 |
 | `Apps/VisionOS/Resources/grass_nor.jpg` | ground normal map (gl) | Leafy Grass 1k | Charlotte Baglioni | CC0 |
 | `Apps/VisionOS/Resources/grass_rough.jpg` | ground roughness | Leafy Grass 1k | Charlotte Baglioni | CC0 |
 | `Apps/VisionOS/Resources/Sounds/impact.wav` | club hitting ball | made by `tools/make_sounds.py` (synth) | me | ours |

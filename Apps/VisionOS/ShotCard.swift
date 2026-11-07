@@ -9,13 +9,15 @@ struct ShotCard: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
                 Text(String(format: "%.0f", Units.yards(shot.flight.carry)))
-                    .font(.system(size: 64, weight: .bold, design: .rounded))
+                    .font(.system(size: 92, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
                 Text("yd carry")
-                    .font(.title3)
+                    .font(.title2.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text(String(format: "%.0f total", Units.yards(shot.flight.total)))
-                    .font(.title3)
+                    .font(.title2.weight(.semibold))
+                    .monospacedDigit()
                     .foregroundStyle(.secondary)
             }
 
@@ -30,22 +32,22 @@ struct ShotCard: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(shot.tip.title)
-                    .font(.headline)
+                    .font(.title3.weight(.bold))
                 Text(shot.tip.detail)
-                    .font(.body)
+                    .font(.title3)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(28)
-        .frame(width: 520)
+        .frame(width: 640)
         .glassBackgroundEffect()
     }
 
     private func stat(_ title: String, _ value: String, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.title2.bold()).foregroundStyle(color)
+            Text(title.uppercased()).font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+            Text(value).font(.system(size: 34, weight: .bold, design: .rounded)).monospacedDigit().foregroundStyle(color)
         }
     }
 

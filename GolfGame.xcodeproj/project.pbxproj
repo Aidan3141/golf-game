@@ -15,6 +15,7 @@
 		1A0AA9DA830B235CD8637A16 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D651FAC98A7B599BF438465E /* ContentView.swift */; };
 		1DF0849AE34493438220F339 /* SwingLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18193F50C9FD7B5CD1C82554 /* SwingLogger.swift */; };
 		1F9FC25B9B0668A884F3DF15 /* SwingKit in Frameworks */ = {isa = PBXBuildFile; productRef = 773D70B0D6CFA15F475B0BEC /* SwingKit */; };
+		23A3248DCB7A228B9274E4F6 /* grass_vivid.jpg in Resources */ = {isa = PBXBuildFile; fileRef = C0D1D3BE5E181C011563FD99 /* grass_vivid.jpg */; };
 		26DA5D955590E82DFF10B0C1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3399F17955A487373B2E275B /* ContentView.swift */; };
 		294A9AA60B24E27E8986D60A /* SwingSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E1A303088E125FD2A7FE63 /* SwingSource.swift */; };
 		2DFF66BFCBA9311099850F40 /* AddressCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F05C82653BF712BCAEEE743 /* AddressCheck.swift */; };
@@ -128,6 +129,7 @@
 		B69820316EF3A9470426064C /* SwingFeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingFeed.swift; sourceTree = "<group>"; };
 		BCC30F579139D647C7B66404 /* RecordingDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingDetailView.swift; sourceTree = "<group>"; };
 		C037CA7AC5B68AC41903C9CF /* ambience.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = ambience.wav; sourceTree = "<group>"; };
+		C0D1D3BE5E181C011563FD99 /* grass_vivid.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = grass_vivid.jpg; sourceTree = "<group>"; };
 		C3CD6BF1FB87A541E10274F1 /* BallFlightSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BallFlightSystem.swift; sourceTree = "<group>"; };
 		C8F4657D5DB94EDF33135033 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		CD721FA21D696604A904577A /* range_ibl.hdr */ = {isa = PBXFileReference; path = range_ibl.hdr; sourceTree = "<group>"; };
@@ -223,6 +225,7 @@
 				6066669BB0A652EA632193A9 /* grass_diff.jpg */,
 				058F9DD72DAC2CA3A0AFE854 /* grass_nor.jpg */,
 				29B4B5717E7CF8E3EA70E1EF /* grass_rough.jpg */,
+				C0D1D3BE5E181C011563FD99 /* grass_vivid.jpg */,
 				CD721FA21D696604A904577A /* range_ibl.hdr */,
 				2C7E0E504DBD0570B083F99D /* range_sky.jpg */,
 				465DBDE735A14A754D8E3BDA /* Sounds */,
@@ -420,6 +423,7 @@
 				126FD9B6909D82AA99B7FE14 /* grass_diff.jpg in Resources */,
 				AE3F91506FA28348CD41E2D7 /* grass_nor.jpg in Resources */,
 				FA9E16513C6754092D2D740C /* grass_rough.jpg in Resources */,
+				23A3248DCB7A228B9274E4F6 /* grass_vivid.jpg in Resources */,
 				CDB4F6761304BC6DA5565F70 /* impact.wav in Resources */,
 				C24DB66ABB3C737A37B503CC /* land.wav in Resources */,
 				4F18888349E79FFDC3410400 /* range_ibl.hdr in Resources */,
