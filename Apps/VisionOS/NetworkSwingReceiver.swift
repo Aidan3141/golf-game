@@ -13,6 +13,7 @@ final class NetworkSwingReceiver: SwingSource {
 
     // live club sample, time already in this headsets uptime clock (phone converts it)
     @ObservationIgnored var onClub: ((ClubSample) -> Void)?
+    @ObservationIgnored var onQuickImpact: ((QuickImpact) -> Void)?
     // live club debug, refreshed ~1/s
     private(set) var clubStats = "—"
     @ObservationIgnored private var clubWindowStart = 0.0
@@ -188,6 +189,9 @@ final class NetworkSwingReceiver: SwingSource {
             send(MessageEnvelope(payload: .clockPong(t0: t0, t1: ProcessInfo.processInfo.systemUptime)))
         case .clubSample(let sample):
             clubArrived(sample)
+        case .quickImpact(let q):
+            if let t = q.time { lastLatency = ProcessInfo.processInfo.systemUptime - t }
+            onQuickImpact?(q)
         case .ping, .mode, .clockPong:
             break
         }

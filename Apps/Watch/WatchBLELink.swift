@@ -58,6 +58,21 @@ final class WatchBLELink: NSObject {
         return true
     }
 
+    // impact matters more than any one club sample: if the radio is busy, retry for ~50ms
+    func sendImpact(_ q: QuickImpact) {
+        guard connected, peer != nil, ch != nil else { return }
+        let data = ClubPacket.impact(q).encoded()
+        Task {
+            for _ in 0..<10 {
+                if let peer, let ch, peer.canSendWriteWithoutResponse {
+                    peer.writeValue(data, for: ch, type: .withoutResponse)
+                    return
+                }
+                try? await Task.sleep(for: .milliseconds(5))
+            }
+        }
+    }
+
     private func scan() {
         guard wanted, let cm, cm.state == .poweredOn, peer == nil else { return }
         cm.scanForPeripherals(withServices: [CBUUID(string: ClubLinkIDs.service)], options: nil)

@@ -54,3 +54,42 @@ public struct AngleRateTracker: Sendable {
         return (angle - ref.a) / (t - ref.t)
     }
 }
+
+// the bare minimum to launch a ball, sent the instant the watch sees impact over the fast lane.
+// the full SwingResult follows over watchconnectivity (slow) + refines the shot.
+// time = impact time in the receivers uptime clock
+public struct QuickImpact: Codable, Sendable, Hashable {
+    public var time: Double?
+    public var wristSpeed: Double  // rad/s
+    public var backswing: Double  // s
+    public var downswing: Double  // s
+    public var faceAngle: Double?  // deg
+    public var confidence: Double
+
+    public init(time: Double?, wristSpeed: Double, backswing: Double, downswing: Double, faceAngle: Double?, confidence: Double) {
+        self.time = time
+        self.wristSpeed = wristSpeed
+        self.backswing = backswing
+        self.downswing = downswing
+        self.faceAngle = faceAngle
+        self.confidence = confidence
+    }
+
+    public init(_ s: SwingResult, time: Double?) {
+        self.init(time: time, wristSpeed: s.peakWristAngularVelocity, backswing: s.backswingDuration,
+                  downswing: s.downswingDuration, faceAngle: s.faceAngle, confidence: s.confidence)
+    }
+
+    public func shifted(by offset: Double?) -> QuickImpact {
+        var q = self
+        if let t = time, let offset { q.time = t + offset } else { q.time = nil }
+        return q
+    }
+
+    // good enough swing to fly the ball till the real one shows up
+    public func swing(handedness: Handedness) -> SwingResult {
+        SwingResult(handedness: handedness, backswingDuration: backswing, downswingDuration: downswing,
+                    peakWristAngularVelocity: wristSpeed, peakAcceleration: 0, smoothnessScore: 0.8,
+                    pathBias: 0, confidence: confidence, faceAngle: faceAngle)
+    }
+}

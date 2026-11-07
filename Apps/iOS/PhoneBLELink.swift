@@ -14,6 +14,7 @@ final class PhoneBLELink: NSObject {
     private(set) var stats = "—"
 
     @ObservationIgnored var onClub: ((ClubSample) -> Void)?
+    @ObservationIgnored var onImpact: ((QuickImpact) -> Void)?  // time already in phone clock
     @ObservationIgnored private var pm: CBPeripheralManager?
     @ObservationIgnored private var ch: CBMutableCharacteristic?
     @ObservationIgnored private var inWindow = 0
@@ -47,6 +48,8 @@ final class PhoneBLELink: NSObject {
             // answer right away, the watch measures the round trip
             guard let pm, let ch else { return }
             _ = pm.updateValue(ClubPacket.pong(t0: t0, t1: now).encoded(), for: ch, onSubscribedCentrals: [central])
+        case .impact(let q):
+            onImpact?(q)
         case .pong:
             break
         }

@@ -47,8 +47,10 @@ final class WatchConnectivityManager: NSObject {
     // small + fast. sendMessage if the phone app is up, otherwise queue it.
     // "it" = impact time in the phones clock so the headset can line the ball up w/ it
     func send(swing: SwingResult, impactUptime: Double) {
-        guard let session, let data = try? MessageEnvelope(payload: .swing(swing)).encoded() else { return }
         let it = clock.toRemote(impactUptime)
+        // fast lane: tiny impact packet so the ball can go right away, full swing follows below
+        if ble.connected { ble.sendImpact(QuickImpact(swing, time: it)) }
+        guard let session, let data = try? MessageEnvelope(payload: .swing(swing)).encoded() else { return }
         var msg: [String: Any] = ["env": data]
         if let it { msg["it"] = it }
         if session.isReachable {

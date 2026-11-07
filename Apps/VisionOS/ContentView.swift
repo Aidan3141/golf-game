@@ -209,6 +209,9 @@ struct ContentView: View {
                 Text(appModel.handStats)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
+                Button("Re-lock Club", systemImage: "hand.raised") {
+                    appModel.relockToken += 1
+                }
                 Text("hold still at address w/ both hands on the grip for a sec to lock the club to ur hands")
                     .font(.caption)
                     .foregroundStyle(.secondary)

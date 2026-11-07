@@ -177,3 +177,41 @@ import Testing
         #expect(MessageEnvelope.currentVersion == 2)
     }
 }
+
+@Suite struct QuickImpactTests {
+    @Test func packetRoundTrip() throws {
+        let q = QuickImpact(time: 4321.5, wristSpeed: 18.75, backswing: 0.957, downswing: 0.312, faceAngle: -6, confidence: 0.9)
+        let d = ClubPacket.impact(q).encoded()
+        #expect(d.count <= 20)
+        guard case .impact(let b) = try #require(ClubPacket.decode(d)) else { Issue.record("wrong type"); return }
+        #expect(b.time == 4321.5)
+        #expect(abs(b.wristSpeed - 18.75) < 1e-5)
+        #expect(abs(b.backswing - 0.957) < 1e-9)
+        #expect(abs(b.downswing - 0.312) < 1e-9)
+        #expect(b.faceAngle == -6)
+        #expect(abs(b.confidence - 0.9) < 0.011)
+    }
+
+    @Test func noFaceNoTime() throws {
+        let q = QuickImpact(time: nil, wristSpeed: 10, backswing: 1, downswing: 0.3, faceAngle: nil, confidence: 1)
+        guard case .impact(let b) = try #require(ClubPacket.decode(ClubPacket.impact(q).encoded())) else { Issue.record("wrong type"); return }
+        #expect(b.time == nil)
+        #expect(b.faceAngle == nil)
+        #expect(b.confidence == 1)
+    }
+
+    @Test func makesASwing() {
+        let q = QuickImpact(time: 1, wristSpeed: 19, backswing: 0.9, downswing: 0.3, faceAngle: 4, confidence: 0.8)
+        let s = q.swing(handedness: .left)
+        #expect(abs(s.tempoRatio - 3) < 1e-9)
+        #expect(s.handedness == .left)
+        #expect(s.faceAngle == 4)
+        #expect(q.shifted(by: 10).time == 11)
+    }
+
+    @Test func messageRoundTrip() throws {
+        let env = MessageEnvelope(payload: .quickImpact(QuickImpact(time: 2, wristSpeed: 3, backswing: 1, downswing: 0.3, faceAngle: nil, confidence: 1)),
+                                  sentAt: Date(timeIntervalSince1970: 0))
+        #expect(try MessageEnvelope.decode(env.encoded()) == env)
+    }
+}

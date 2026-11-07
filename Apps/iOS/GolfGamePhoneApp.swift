@@ -42,6 +42,7 @@ struct GolfGamePhoneApp: App {
                     }
                     connectivity.onClub = forward
                     ble.onClub = forward
+                    ble.onImpact = { [sender] q in sender.send(quickImpact: q) }
                     ble.start()
                     connectivity.onSwing = { [sender, feed, container] swing, impact in
                         sender.send(swing, impactPhoneTime: impact)  // headset first, everything else can wait

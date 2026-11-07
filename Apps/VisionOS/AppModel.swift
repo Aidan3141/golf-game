@@ -73,6 +73,7 @@ final class AppModel {
     }
     var clubSource = ClubSource.hybrid
     var handStats = "—"
+    var relockToken = 0  // bump to make the hand club forget its lock
 
     // club tuning, all live from the window
     var handBackend = HandTracking.Backend.anchored
@@ -92,7 +93,7 @@ final class AppModel {
     var lastSwingLog: URL?
 
     // contact launch waits this long for the watch to refine it
-    static let refineWindow = 1.5
+    static let refineWindow = 3.0  // the full watch swing comes over watchconnectivity, can take a sec or 2
     @ObservationIgnored private var contactAt: Double?
     @ObservationIgnored private var contactFace: Double?
 
@@ -125,6 +126,9 @@ final class AppModel {
         listen(to: network, live: true)
         network.onClub = { [liveClub] sample in
             liveClub.update(sample)
+        }
+        network.onQuickImpact = { [weak self] q in
+            self?.quickImpact(q)
         }
         network.start()
         liveClub.extrapolate = watchExtrapolate
@@ -199,6 +203,28 @@ final class AppModel {
         session.append(shot)
     }
 
+    // the watch saw impact (fast lane, ~tens of ms) but the hand club didnt hit the ball (hands
+    // lost, blur). launch off the quick numbers now, the full swing refines it when it lands
+    func quickImpact(_ q: QuickImpact) {
+        let now = ProcessInfo.processInfo.systemUptime
+        if let at = contactAt, now - at < 1.0 { return }  // hand club already launched this one
+        swingLogger.mark(String(format: "watch impact %.0f rad/s", q.wristSpeed))
+        contactAt = now
+        contactFace = nil
+        var swing = q.swing(handedness: handedness)
+        if mode == .putt {
+            putt(swing, live: true)
+            return
+        }
+        if let face = swing.faceAngle { swing = swing.with(pathBias: pathBias(forFace: face)) }
+        let flight = FlightSimulator.simulate(swing: swing, tuning: tuning)
+        var shot = Shot(swing: swing, flight: flight, live: true,
+                        tip: Coach.tip(for: swing, flight: flight), provisional: true)
+        if let t = q.time { shot.startOffset = min(max(now - t, 0), 0.4) }
+        lastShot = shot
+        session.append(shot)
+    }
+
     // face open to the right -> slice for a righty. ~15 deg = full curve
     private func facePath(_ face: Double) -> Double {
         let sign: Double = handedness == .right ? -1 : 1
@@ -241,7 +267,9 @@ final class AppModel {
             return
         }
         guard let old = lastShot, old.provisional else { return }
-        let swing = watch.with(pathBias: contactFace.map(facePath) ?? watch.pathBias)
+        // hand face if the hand club hit it, else the watch wrist roll (w/ the flip/strength calibration)
+        let path = contactFace.map(facePath) ?? watch.faceAngle.map(pathBias(forFace:)) ?? watch.pathBias
+        let swing = watch.with(pathBias: path)
         let flight = FlightSimulator.simulate(swing: swing, tuning: tuning)
         let shot = Shot(id: old.id, swing: swing, flight: flight, live: true,
                         tip: Coach.tip(for: swing, flight: flight), provisional: false, refined: true)

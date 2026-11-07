@@ -56,6 +56,10 @@ final class NetworkSwingSender {
         send(MessageEnvelope(payload: .clubSample(s.shifted(by: clock.offset))))
     }
 
+    func send(quickImpact q: QuickImpact) {
+        send(MessageEnvelope(payload: .quickImpact(q.shifted(by: clock.offset))))
+    }
+
     // impact time phone clock -> headset clock so the ball can launch from the real impact moment
     func send(_ swing: SwingResult, impactPhoneTime: Double?) {
         let it = impactPhoneTime.flatMap { clock.toRemote($0) }

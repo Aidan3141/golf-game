@@ -79,7 +79,20 @@ final class HandClub {
         var localPos: SIMD3<Float>  // grip in the lead hand frame
     }
     private var calib: Calibration?
-    private var stillSince: Double?
+    private struct CalSample {
+        var leadPos: SIMD3<Float>
+        var leadRot: simd_quatf
+        var trailPos: SIMD3<Float>
+        var t: Double
+    }
+    private var calSamples: [CalSample] = []
+    private var pendingCalib: (cal: Calibration, length: Float, at: Double)?
+    private var lastLockAttempt = -Double.infinity
+    private var relockSeen = 0
+    private var lockNote = "hold still at address"
+    static let minLockFrames = 8
+    static let maxLockSpread: Float = 12 * .pi / 180  // frames must agree within this
+    static let sameGripAngle: Float = 25 * .pi / 180  // a new lock this close just replaces the old
     private var lastLead: SIMD3<Float>?
     private var lastTracked = -Double.infinity
     private var lastPose: (pos: SIMD3<Float>, rot: simd_quatf)?
@@ -120,7 +133,8 @@ final class HandClub {
     func reset() {
         calib = nil
         lastPose = nil
-        stillSince = nil
+        calSamples.removeAll()
+        pendingCalib = nil
         posFilter.reset()
         for i in 0..<4 { rotFilters[i].reset() }
         hideAll()
@@ -203,22 +217,27 @@ final class HandClub {
             return
         }
 
-        // calibrate when both hands sit still at address (+ watch isnt mid swing)
+        if appModel.relockToken != relockSeen {
+            relockSeen = appModel.relockToken
+            reset()
+            lockNote = "re-lock: hold still at address"
+        }
+
+        // lock the club to ur hands: collect every frame both hands are seen while ur still at
+        // address (clasped hands hide the lead hand most frames, thats fine, unseen frames dont
+        // reset it), then lock off the AVERAGE once theyre steady. one frame used to be enough +
+        // a half hidden frame w/ a flipped palm would lock the club sideways
         if let lp = hands.leadPos, let lr = hands.leadRot, let tp = hands.trailPos {
             let moved = lastLead.map { simd_distance($0, lp) } ?? 1
             lastLead = lp
             let swinging = live.isFresh && abs(live.watchAngle) > 0.15
             let together = simd_distance(lp, tp) < 0.15
-            // ~6mm/frame: hand tracking jitters a mm or two even when ur dead still
-            if moved < 0.006 && together && !swinging {
-                stillSince = stillSince ?? now
+            if moved < 0.006 && together && !swinging && ballIsIdle {
+                calSamples.append(CalSample(leadPos: lp, leadRot: lr, trailPos: tp, t: now))
+                calSamples.removeAll { $0.t < now - 1.0 }
+                tryLock(ball: ballW, target: target, backend: tracking.backend, lead: leadHand, now: now)
             } else {
-                stillSince = nil
-            }
-            if let s = stillSince, now - s > 0.5, ballIsIdle {
-                calibrate(leadPos: lp, leadRot: lr, grip: (lp + tp) / 2, ball: ballW, target: target,
-                          backend: tracking.backend, lead: leadHand)
-                stillSince = now + 1  // dont redo every frame, again in ~1.5s if still still
+                calSamples.removeAll()
             }
         }
 
@@ -322,11 +341,73 @@ final class HandClub {
         return !ball.components.has(BallFlightComponent.self) && !ball.components.has(PuttRollComponent.self)
     }
 
-    private func calibrate(leadPos: SIMD3<Float>, leadRot: simd_quatf, grip: SIMD3<Float>, ball: SIMD3<Float>,
-                           target: SIMD3<Float>, backend: HandTracking.Backend, lead: Handedness) {
+    private static func angle(_ a: simd_quatf, _ b: simd_quatf) -> Float {
+        2 * acos(min(1, abs(simd_dot(a.vector, b.vector))))
+    }
+
+    private func tryLock(ball: SIMD3<Float>, target: SIMD3<Float>, backend: HandTracking.Backend, lead: Handedness, now: Double) {
+        guard calSamples.count >= Self.minLockFrames, let first = calSamples.first, let last = calSamples.last,
+              last.t - first.t >= 0.5, now - lastLockAttempt > 0.5 else { return }
+        lastLockAttempt = now
+
+        // average rotation (same hemisphere first) + positions
+        let ref = first.leadRot.vector
+        var acc = SIMD4<Float>()
+        var leadSum = SIMD3<Float>(), trailSum = SIMD3<Float>()
+        for c in calSamples {
+            acc += simd_dot(c.leadRot.vector, ref) < 0 ? -c.leadRot.vector : c.leadRot.vector
+            leadSum += c.leadPos
+            trailSum += c.trailPos
+        }
+        let n = Float(calSamples.count)
+        let avgRot = simd_normalize(simd_quatf(vector: simd_normalize(acc)))
+        let spread = calSamples.map { Self.angle($0.leadRot, avgRot) }.max() ?? 0
+        guard spread < Self.maxLockSpread else {
+            lockNote = String(format: "hands not steady (%.0f°)", spread * 180 / .pi)
+            calSamples.removeFirst(calSamples.count / 2)
+            return
+        }
+        // golf grip: the BACK of the lead hand faces the target, so the palm (+y) cant point at it.
+        // if it does the tracker flipped the half hidden hand, dont lock on that
+        var palm = avgRot.act([0, 1, 0])
+        palm.y = 0
+        if simd_length(palm) > 0.3, simd_dot(simd_normalize(palm), target) > 0.35 {
+            lockNote = "lead palm read backwards, open ur grip a sec"
+            calSamples.removeAll()
+            return
+        }
+
+        let avgLead = leadSum / n
+        let grip = (avgLead + trailSum / n) / 2
+        let (cand, length) = makeCalibration(leadPos: avgLead, leadRot: avgRot, grip: grip, ball: ball,
+                                             target: target, backend: backend, lead: lead)
+        calSamples.removeAll()
+
+        guard let cur = calib else {
+            apply(cand, length: length)
+            lockNote = "locked ✓"
+            return
+        }
+        // already locked: a close match just refines it, a big change has to show up twice
+        // (1s+ apart) before we believe it. one weird moment cant flip the club anymore
+        if Self.angle(cand.localRot, cur.localRot) < Self.sameGripAngle {
+            apply(cand, length: length)
+            pendingCalib = nil
+            lockNote = "locked ✓"
+        } else if let p = pendingCalib, now - p.at > 1.0, Self.angle(p.cal.localRot, cand.localRot) < Self.maxLockSpread {
+            apply(cand, length: length)
+            pendingCalib = nil
+            lockNote = "re-locked (new grip)"
+        } else {
+            pendingCalib = (cand, length, now)
+            lockNote = "grip changed? hold still to confirm"
+        }
+    }
+
+    private func makeCalibration(leadPos: SIMD3<Float>, leadRot: simd_quatf, grip: SIMD3<Float>, ball: SIMD3<Float>,
+                                 target: SIMD3<Float>, backend: HandTracking.Backend, lead: Handedness) -> (Calibration, Float) {
         let toBall = ball - grip
         let L = min(max(simd_length(toBall), 0.5), 1.3)
-        for c in [leftClub, rightClub, freeClub] { c.build(length: L) }
         let d = simd_normalize(toBall)
         // club frame in world at address: -y along the shaft to the ball, -z = face toward target
         let y = -d
@@ -337,9 +418,14 @@ final class HandClub {
         let c = Calibration(backend: backend, lead: lead,
                             localRot: leadRot.inverse * q0,
                             localPos: leadRot.inverse.act(grip - leadPos))
+        return (c, L)
+    }
+
+    private func apply(_ c: Calibration, length: Float) {
+        for m in [leftClub, rightClub, freeClub] { m.build(length: length) }
         calib = c
         // anchored: the club lives in the palm anchors frame
-        let club = lead == .left ? leftClub : rightClub
+        let club = c.lead == .left ? leftClub : rightClub
         club.root.position = c.localPos
         club.root.orientation = c.localRot
         posFilter.reset()
@@ -410,7 +496,7 @@ final class HandClub {
             guard let c = phaseCounts[p], c.total > 0 else { return "–" }
             return "\(100 * c.tracked / c.total)"
         }
-        var s = "\(source.rawValue) · " + (calib == nil ? "hold still at address" : "calibrated ✓")
+        var s = "\(source.rawValue) · \(lockNote)"
         s += " · seen addr \(pct(.address)) back \(pct(.backswing)) down \(pct(.downswing)) thru \(pct(.followThrough))%"
         if let c = lastContactSpeed { s += String(format: " · contact %.1f m/s", c) }
         let tracking = appModel.handTracking

@@ -13,10 +13,13 @@ public enum ClubPacket: Equatable, Sendable {
     case sample(ClubSample)  // time = sender clock, or receiver clock if `synced`
     case ping(t0: Double)
     case pong(t0: Double, t1: Double)
+    case impact(QuickImpact)  // time = sender clock, or receiver clock if synced
 
     static let sampleType: UInt8 = 1
     static let pingType: UInt8 = 2
     static let pongType: UInt8 = 3
+    static let impactType: UInt8 = 4
+    static let noFace: Int8 = .min
     static let syncedBit: UInt8 = 0x80
 
     public func encoded() -> Data {
@@ -36,6 +39,16 @@ public enum ClubPacket: Equatable, Sendable {
             d.append(Self.pongType)
             d.appendLE(t0)
             d.appendLE(t1)
+        case .impact(let q):
+            // 19 bytes: type, flags, time f64, wrist f32, back ms u16, down ms u16, face deg i8
+            d.append(Self.impactType)
+            d.append(UInt8(min(max(q.confidence, 0), 1) * 100) | (q.time != nil ? Self.syncedBit : 0))
+            d.appendLE(q.time ?? 0)
+            d.appendLE(Float(q.wristSpeed))
+            d.appendLE(UInt16(min(max(q.backswing * 1000, 0), 65535)))
+            d.appendLE(UInt16(min(max(q.downswing * 1000, 0), 65535)))
+            let face = q.faceAngle.map { Int8(min(max($0.rounded(), -127), 127)) } ?? Self.noFace
+            d.append(UInt8(bitPattern: face))
         }
         return d
     }
@@ -60,6 +73,17 @@ public enum ClubPacket: Equatable, Sendable {
         case pongType:
             guard b.count >= 17 else { return nil }
             return .pong(t0: Double(bitPattern: b.u64(at: 1)), t1: Double(bitPattern: b.u64(at: 9)))
+        case impactType:
+            guard b.count >= 19 else { return nil }
+            let synced = b[1] & syncedBit != 0
+            let conf = Double(b[1] & ~syncedBit) / 100
+            let time = Double(bitPattern: b.u64(at: 2))
+            let wrist = Double(Float(bitPattern: b.u32(at: 10)))
+            let back = Double(UInt16(b[14]) | UInt16(b[15]) << 8) / 1000
+            let down = Double(UInt16(b[16]) | UInt16(b[17]) << 8) / 1000
+            let faceRaw = Int8(bitPattern: b[18])
+            return .impact(QuickImpact(time: synced ? time : nil, wristSpeed: wrist, backswing: back, downswing: down,
+                                       faceAngle: faceRaw == noFace ? nil : Double(faceRaw), confidence: conf))
         default:
             return nil
         }
@@ -69,6 +93,11 @@ public enum ClubPacket: Equatable, Sendable {
 extension Data {
     mutating func appendLE(_ v: Float) {
         var x = v.bitPattern.littleEndian
+        Swift.withUnsafeBytes(of: &x) { append(contentsOf: $0) }
+    }
+
+    mutating func appendLE(_ v: UInt16) {
+        var x = v.littleEndian
         Swift.withUnsafeBytes(of: &x) { append(contentsOf: $0) }
     }
 
