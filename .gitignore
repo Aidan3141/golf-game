@@ -23,3 +23,6 @@ build/
 CLAUDE.md
 CLAUDE.local.md
 .env
+
+# showcase renders
+tools/showcase/out/
