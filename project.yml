@@ -72,6 +72,7 @@ targets:
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSBluetoothAlwaysUsageDescription: Golf Game uses bluetooth for a fast direct link to ur watch so the club follows ur swing w/ less lag.
         NSLocalNetworkUsageDescription: Golf Game connects your iPhone and Vision Pro so your watch swings show up in the headset.
         NSBonjourServices: [_golfgame._tcp]
 
@@ -102,3 +103,4 @@ targets:
         NSHealthShareUsageDescription: Golf Game doesnt read any health data.
         NSHealthUpdateUsageDescription: Golf Game runs a golf workout session so it can read your swing at high speed. nothing gets saved to Health.
         NSMotionUsageDescription: Golf Game uses motion sensors to measure your swing.
+        NSBluetoothAlwaysUsageDescription: Golf Game uses bluetooth for a fast direct link to ur phone so the club follows ur swing w/ less lag.

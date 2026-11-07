@@ -6,6 +6,7 @@ struct ContentView: View {
     @Environment(RecordingStore.self) private var store
     @Environment(NetworkSwingSender.self) private var sender
     @Environment(SwingFeed.self) private var feed
+    @Environment(PhoneBLELink.self) private var ble
 
     var body: some View {
         NavigationStack {
@@ -18,7 +19,11 @@ struct ContentView: View {
                     if sender.state.isConnected {
                         LabeledContent("Mode", value: sender.mode == .putt ? "putting" : "full swing")
                     }
-                    LabeledContent("Live club (watch → phone)", value: connectivity.clubStats)
+                    LabeledContent("Watch bluetooth", value: ble.status)
+                        .font(.footnote)
+                    LabeledContent("Live club via bluetooth", value: ble.stats)
+                        .font(.footnote)
+                    LabeledContent("Live club via watchconnectivity", value: connectivity.clubStats)
                         .font(.footnote)
                     LabeledContent("Headset clock sync", value: sender.syncLabel)
                         .font(.footnote)
@@ -149,4 +154,7 @@ private struct RecordingRow: View {
     ContentView()
         .environment(PhoneConnectivity())
         .environment(RecordingStore())
+        .environment(NetworkSwingSender())
+        .environment(SwingFeed())
+        .environment(PhoneBLELink())
 }

@@ -1,5 +1,12 @@
 import Foundation
 
+// ble ids for the watch -> phone fast lane (phone = peripheral, watch = central).
+// the headset + watch can only be ble centrals so they cant link up directly
+public enum ClubLinkIDs {
+    public static let service = "45B7371E-1ED8-41D7-AA83-81E6987B635A"
+    public static let characteristic = "F9D2DE73-D68C-4B86-AA17-C4C886FD0F8B"  // write w/o response + notify
+}
+
 // tiny binary packets for the watch -> phone bluetooth fast lane. kept <= 20 bytes so they
 // fit the default ble att mtu w/o any negotiation. little endian
 public enum ClubPacket: Equatable, Sendable {

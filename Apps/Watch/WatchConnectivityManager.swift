@@ -15,12 +15,18 @@ final class WatchConnectivityManager: NSObject {
     // phone clock - watch clock (both systemUptime), from the reply timestamps
     @ObservationIgnored private(set) var clock = ClockOffsetEstimator()
     @ObservationIgnored private var pingTask: Task<Void, Never>?
+    // bluetooth fast lane straight to the phone, used for club samples whenever its connected
+    let ble = WatchBLELink()
+    @ObservationIgnored private var bleInWindow = 0
     @ObservationIgnored private let session: WCSession? = WCSession.isSupported() ? .default : nil
 
     override init() {
         super.init()
         session?.delegate = self
         session?.activate()
+        ble.onPong = { [weak self] t0, t1, t3 in
+            self?.clock.add(sent: t0, remote: t1, received: t3)
+        }
     }
 
     func send(_ rec: SwingRecording) {
@@ -74,8 +80,18 @@ final class WatchConnectivityManager: NSObject {
     // sample time goes over in the PHONES clock ("st"), the reply carries the phones time ("t1")
     // so every club msg is also a clock sync round trip
     func send(club s: ClubSample) {
-        guard let session, session.isReachable else { return }
         let now = ProcessInfo.processInfo.systemUptime
+        // fast lane first: no ack gate needed, the radio only ever sends the newest
+        if ble.connected {
+            var phoneTime = s
+            phoneTime.time = s.time.flatMap { clock.toRemote($0) }
+            if ble.send(phoneTime) {
+                bleInWindow += 1
+                updateStats(now)
+                return
+            }
+        }
+        guard let session, session.isReachable else { return }
         if let since = inFlightSince, now - since < 0.5 {
             skipped += 1
             return
@@ -129,13 +145,22 @@ final class WatchConnectivityManager: NSObject {
         pingTask = nil
     }
 
+    func startFastLane() { ble.start() }
+    func stopFastLane() { ble.stop() }
+
     private func updateStats(_ now: Double) {
         guard now - statsWindowStart >= 1 else { return }
-        let rate = Double(sentInWindow) / (now - statsWindowStart)
         let sync = clock.uncertainty.map { String(format: "±%.0fms", $0 * 1000) } ?? "no sync"
-        clubStats = String(format: "club %.0f/s · rtt %.0fms · %@", rate, (rttAvg ?? 0) * 1000, sync)
+        if bleInWindow > 0 {
+            let rate = Double(bleInWindow) / (now - statsWindowStart)
+            clubStats = String(format: "ble %.0f/s · %@", rate, sync)
+        } else {
+            let rate = Double(sentInWindow) / (now - statsWindowStart)
+            clubStats = String(format: "wc %.0f/s · rtt %.0fms · %@", rate, (rttAvg ?? 0) * 1000, sync)
+        }
         statsWindowStart = now
         sentInWindow = 0
+        bleInWindow = 0
     }
 
     private func refresh() {

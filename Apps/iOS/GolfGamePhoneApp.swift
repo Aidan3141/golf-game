@@ -8,6 +8,7 @@ struct GolfGamePhoneApp: App {
     @State private var store = RecordingStore()
     @State private var sender = NetworkSwingSender()
     @State private var feed = SwingFeed()
+    @State private var ble = PhoneBLELink()
     private let container: ModelContainer = {
         do {
             return try ModelContainer(for: SwingRecord.self)
@@ -23,6 +24,7 @@ struct GolfGamePhoneApp: App {
                 .environment(store)
                 .environment(sender)
                 .environment(feed)
+                .environment(ble)
                 .onAppear {
                     store.reload()
                     sender.start()
@@ -32,11 +34,15 @@ struct GolfGamePhoneApp: App {
                     sender.onMode = { [connectivity] mode in
                         connectivity.send(mode: mode)
                     }
-                    connectivity.onClub = { [sender] sample in
+                    // club samples come over bluetooth (fast lane) or watchconnectivity, same deal
+                    let forward: (ClubSample) -> Void = { [sender] sample in
                         // already too old to be useful, dont bother the headset
                         if let t = sample.time, ProcessInfo.processInfo.systemUptime - t > 1 { return }
                         sender.send(club: sample)
                     }
+                    connectivity.onClub = forward
+                    ble.onClub = forward
+                    ble.start()
                     connectivity.onSwing = { [sender, feed, container] swing, impact in
                         sender.send(swing, impactPhoneTime: impact)  // headset first, everything else can wait
                         feed.add(swing, watchLatency: impact.map { ProcessInfo.processInfo.systemUptime - $0 } ?? 0)

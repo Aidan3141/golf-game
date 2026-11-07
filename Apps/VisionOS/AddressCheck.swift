@@ -32,7 +32,7 @@ final class AddressCheck {
     @ObservationIgnored private(set) var handsMid: SIMD3<Float>?
     @ObservationIgnored private(set) var goodSince: Double?
 
-    static let maxGap: Float = 0.12  // m between wrists, hands on the grip are ~5-8cm
+    static let maxGap: Float = 0.15  // m between palms, hands on a grip are ~8-12cm apart
     static let handHeight: ClosedRange<Float> = 0.55...1.15  // m off the floor at address
     static let maxSideways: Float = 0.25  // m off ur centerline
 

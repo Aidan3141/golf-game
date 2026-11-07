@@ -61,9 +61,11 @@ struct ContentView: View {
             if running {
                 capture.startStreaming()
                 connectivity.startClockPings()
+                connectivity.startFastLane()
             } else {
                 capture.stopStreaming()
                 connectivity.stopClockPings()
+                connectivity.stopFastLane()
             }
         }
     }
@@ -187,6 +189,7 @@ struct ContentView: View {
             Text("\(capture.swingCount) swings · \(capture.source) \(Int(capture.accelHz))/\(Int(capture.motionHz)) Hz")
             Text(connectivity.pendingTransfers > 0 ? "sending \(connectivity.pendingTransfers)…" : "all sent")
             Text(connectivity.clubStats)
+            Text("link: " + connectivity.ble.status)
             if let e = capture.errorText ?? connectivity.lastError {
                 Text(e).foregroundStyle(.red)
             }

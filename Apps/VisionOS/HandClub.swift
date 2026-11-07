@@ -209,7 +209,8 @@ final class HandClub {
             lastLead = lp
             let swinging = live.isFresh && abs(live.watchAngle) > 0.15
             let together = simd_distance(lp, tp) < 0.15
-            if moved < 0.004 && together && !swinging {
+            // ~6mm/frame: hand tracking jitters a mm or two even when ur dead still
+            if moved < 0.006 && together && !swinging {
                 stillSince = stillSince ?? now
             } else {
                 stillSince = nil
@@ -237,8 +238,9 @@ final class HandClub {
             lastTracked = now
             leverAtTrack = live.leverAngle
             if tracking.backend == .anchored {
-                // just came back from fallback -> slide the free club onto the hand for a beat
-                if self.source == .fallback || self.source == .frozen {
+                // just came back from fallback -> slide the free club onto the hand for a beat.
+                // only start it once (during the blend source still reads .fallback)
+                if blendFrom == nil && (self.source == .fallback || self.source == .frozen) {
                     blendFrom = (freeRoot.position, freeRoot.orientation)
                     blendStart = now
                 }
@@ -288,7 +290,9 @@ final class HandClub {
         leftClub.root.isEnabled = s == .anchored && lead == .left
         rightClub.root.isEnabled = s == .anchored && lead == .right
         freeRoot.isEnabled = s == .manual || s == .fallback || s == .frozen
-        rig?.root.isEnabled = s == .none
+        // the old watch lever club only shows when the hand club cant. in hands only mode
+        // it stays hidden (it'd pop up in the wrong spot)
+        rig?.root.isEnabled = s == .none && appModel?.clubSource != .hands
     }
 
     // manual mode only: 1€ filter, smoothing 0 = off

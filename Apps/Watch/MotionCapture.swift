@@ -40,11 +40,11 @@ final class MotionCapture {
     // fires right at impact w/ confident swings (+ impact time, watch uptime). launches the ball
     @ObservationIgnored var onImpact: ((SwingResult, Double) -> Void)?
     // live club for the headset: angle + how fast its turning + when (watch uptime).
-    // offered at 30hz, the link decides what actually goes
+    // offered at 60hz, the link decides what actually goes (ble takes it all, wc ack gates)
     @ObservationIgnored var onClubSample: ((ClubSample) -> Void)?
     @ObservationIgnored private var lastAngleSent = 0.0
     @ObservationIgnored private var angleRate = AngleRateTracker()
-    static let angleInterval = 1.0 / 30
+    static let angleInterval = 1.0 / 60
 
     // raw data around each swing, ~1s after impact (if saveSwingData)
     @ObservationIgnored var onSwingData: ((SwingRecording) -> Void)?

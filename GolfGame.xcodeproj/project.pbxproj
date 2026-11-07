@@ -26,7 +26,9 @@
 		4A8BBBD309077C9E4EC26309 /* GolfGame Watch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 2CC4CACE9F42E379F574F0B3 /* GolfGame Watch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4CB92CD1A7A10A79805A6A6D /* SwingKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5B39E18C1256D07B652E0CA2 /* SwingKit */; };
 		53B5A1C24FFDBFD4D4F874C7 /* PuttingScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 735897ACDFF71E91FA79EBE5 /* PuttingScene.swift */; };
+		656D893F9AD15389CF7360A5 /* WatchBLELink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42FC9EB6BF04DA2566D905EA /* WatchBLELink.swift */; };
 		69A755D09B28F515DA55103D /* LiveClub.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196209FD2DFF8E6D0CC6C427 /* LiveClub.swift */; };
+		72DD850E363D892F93A6B850 /* PhoneBLELink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE562B5B44CC51CE4787A92 /* PhoneBLELink.swift */; };
 		7D27A2EA4EEBA7018F381941 /* ClubSwing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8969E1D9A293F11C22CF993A /* ClubSwing.swift */; };
 		8161B636D2E8B35E0415238C /* tock.wav in Resources */ = {isa = PBXBuildFile; fileRef = F8BB64FDFBEE59C9C5E588F4 /* tock.wav */; };
 		9309496F7DD34313DDFAEC8B /* BallFlightSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3CD6BF1FB87A541E10274F1 /* BallFlightSystem.swift */; };
@@ -101,6 +103,7 @@
 		328B73A052ABFD9704096BF8 /* PhoneConnectivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneConnectivity.swift; sourceTree = "<group>"; };
 		3399F17955A487373B2E275B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		38A47DF3B0DBC6FF1024DE70 /* GolfGameApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfGameApp.swift; sourceTree = "<group>"; };
+		42FC9EB6BF04DA2566D905EA /* WatchBLELink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchBLELink.swift; sourceTree = "<group>"; };
 		52C5172BCC141207178090F7 /* SwingLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingLink.swift; sourceTree = "<group>"; };
 		531A7012EBFCAEDCF7403B92 /* HandTracking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandTracking.swift; sourceTree = "<group>"; };
 		6066669BB0A652EA632193A9 /* grass_diff.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = grass_diff.jpg; sourceTree = "<group>"; };
@@ -115,6 +118,7 @@
 		9D56BF70B404880C37CB9CE3 /* RangeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RangeView.swift; sourceTree = "<group>"; };
 		9E4A862265B0A879407F5016 /* GolfGameWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfGameWatchApp.swift; sourceTree = "<group>"; };
 		9F9C6C7915F88CB3B91DCB69 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		9FE562B5B44CC51CE4787A92 /* PhoneBLELink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneBLELink.swift; sourceTree = "<group>"; };
 		A2B361C1C09CBE56BE935AFD /* tick.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tick.wav; sourceTree = "<group>"; };
 		A41432CE381D9D1D8A70D739 /* impact.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = impact.wav; sourceTree = "<group>"; };
 		A8329AB5DD72E1794D97E187 /* TestSwingSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSwingSettings.swift; sourceTree = "<group>"; };
@@ -193,6 +197,7 @@
 				9F9C6C7915F88CB3B91DCB69 /* HistoryView.swift */,
 				C8F4657D5DB94EDF33135033 /* Info.plist */,
 				B1551B02154BB7B1B0CC271B /* NetworkSwingSender.swift */,
+				9FE562B5B44CC51CE4787A92 /* PhoneBLELink.swift */,
 				328B73A052ABFD9704096BF8 /* PhoneConnectivity.swift */,
 				BCC30F579139D647C7B66404 /* RecordingDetailView.swift */,
 				EFF6B93E682ABA098DBC89E3 /* RecordingStore.swift */,
@@ -261,6 +266,7 @@
 				9E4A862265B0A879407F5016 /* GolfGameWatchApp.swift */,
 				2544BB8B806178342FDA578F /* Info.plist */,
 				9C7F092EF30E306A374B8A09 /* MotionCapture.swift */,
+				42FC9EB6BF04DA2566D905EA /* WatchBLELink.swift */,
 				FA8FEFE97D40584ECAE8672F /* WatchConnectivityManager.swift */,
 				7435528553F64B82B2C44FD6 /* WorkoutManager.swift */,
 			);
@@ -434,6 +440,7 @@
 				C66F3CFE3B3C66C81ADAEEFC /* GolfGamePhoneApp.swift in Sources */,
 				14C41B2579A23B2427F71B45 /* HistoryView.swift in Sources */,
 				A64227E632D6505E006520B5 /* NetworkSwingSender.swift in Sources */,
+				72DD850E363D892F93A6B850 /* PhoneBLELink.swift in Sources */,
 				DBB94419E6BBB0D3D7CA4081 /* PhoneConnectivity.swift in Sources */,
 				AB664AB8D277EA45E77F5F69 /* RecordingDetailView.swift in Sources */,
 				D6351A3F4BDF250B2F132F65 /* RecordingStore.swift in Sources */,
@@ -450,6 +457,7 @@
 				26DA5D955590E82DFF10B0C1 /* ContentView.swift in Sources */,
 				E4ACCE2CF59ABD69D958E50A /* GolfGameWatchApp.swift in Sources */,
 				44A9DDF2432CD8BC224BC46D /* MotionCapture.swift in Sources */,
+				656D893F9AD15389CF7360A5 /* WatchBLELink.swift in Sources */,
 				FE5A395546A92C264932E77C /* WatchConnectivityManager.swift in Sources */,
 				0C6119EF850F62B1A668724A /* WorkoutManager.swift in Sources */,
 			);

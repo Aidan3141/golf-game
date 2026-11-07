@@ -17,7 +17,12 @@ sends small SwingResult     debug charts                  coaching cards
 - iphone → vision pro: Network framework (NWListener on avp, NWBrowser on phone, bonjour `_golfgame._tcp`) w/ `includePeerToPeer` so it rides awdl and works w/o a shared wifi (campus wifi blocks bonjour). picked over multipeer bc its the modern api, plays nicer w/ swift 6, and does the same peer to peer trick. avp side is just a `SwingSource`, so swapping transports only touches `NetworkSwingReceiver` / `NetworkSwingSender`
 - wire format: `MessageFramer` = 4 byte big endian length + json `MessageEnvelope`. `FrameDecoder` reassembles from a tcp byte stream. phone sends `hello` on connect + `ping` every 2s
 - watch → phone: `sendMessage(["env": envelope])` when reachable, `transferUserInfo` as backup. sent the instant impact is detected, raw data follows separately
-- live club: watch streams `club(angle, phase)` while addressed/swinging. ACK GATED: sendMessage w/ a replyHandler, only one in the air, skip angles while waiting (fire n forget at 25hz backed up + played ~90s late). each msg carries the watch send time, phone keeps it as the envelope sentAt, avp drops anything >0.35s slower than the fastest delivery its seen (baseline soaks up clock skew). stats on all 3 screens: watch rate/rtt/skips, phone rate/age, avp rate/age/stale. phone forwards, avp `LiveClubSystem` follows it w/ light smoothing. angle = rotation from the address pose along the swing axis (`SwingAngleTracker`, body frame so facing doesnt matter). mapped to the lever: x1.45 on the backswing side, x2.6 on the follow thru side
+- live club (v2 wire format): watch sends `ClubSample` = angle along the swing axis (`SwingAngleTracker`, from the address pose, body frame so facing doesnt matter) + angular velocity (`AngleRateTracker`, 30ms finite diff) + phase + sample time. offered at 60hz
+  - transport 1, bluetooth fast lane (preferred): phone = ble peripheral (`PhoneBLELink`, asks for the low latency connection interval), watch = central (`WatchBLELink`). 18 byte `ClubPacket`s, write w/o response so no queue builds (newest wins). ping/pong packets for clock sync. the headset + watch are BOTH central only (checked in the sdk: `CBPeripheralManager` is unavailable on visionos + watchos) so watch -> headset direct isnt possible
+  - transport 2, watchconnectivity fallback: ack gated `sendMessage` (only one in flight, skip while waiting) bc fire n forget at 25hz backed up + played ~90s late. the phones reply carries its uptime so every msg is also a clock sync round trip. 2s pings keep sync warm before the first swing
+  - clocks: `ClockOffsetEstimator` (ntp style, keeps the min round trip sample). watch -> phone offset on the watch, phone -> headset offset on the phone (tcp `clockPing`/`clockPong`). sample + impact times get converted hop by hop so on the headset theyre in its own uptime clock = real ages
+  - headset: `LiveClub` dead reckons: draws angle + omega x (now + display lead - sample time), capped at 250ms / 1.6 rad. `LiveClubSystem` smooths the step when a new sample corrects it (~25ms). mapped to the lever: x1.45 backswing side, x2.6 follow thru side. samples >0.5s old get dropped
+  - stats on all 3 screens: watch link + rate + sync, phone per link rate + age, headset rate + age + stale
 - phone relay only runs w/ the app open (idle timer off). background relay = later maybe
 
 ## targets
@@ -71,7 +76,7 @@ coords in swingkit: x right of target, y up, z downrange (meters). vision app ma
 - `ClubRig` + `ClubSwingSystem` ghost club next to the ball. one rigid lever rotating in a tilted swing plane, timed by the swings backswing/downswing durations (so tempo shows), swing length from wrist speed, plane tilts a bit w/ pathBias. launches the ball at impact
 - `BallFlightSystem` ecs system, plays a precomputed flight on the ball. grows the ball w/ distance so u can see it, drops trail segments, carry + rest markers
 
-debug launch args (Debug builds only): iphone `-autoTestSwing` sends a sample once connected (+ `-autoTestClub` streams a fake club swing first). avp `-autoShot` opens range + hits, `-hideWindow` closes the panel after, `-sideView` turns the world so the sim camera sees the arc, `-clubView` face-on look at the club, `-openRange` just opens it, `-raise` lifts the world so the sim cam sees the ball in first person
+debug launch args (Debug builds only): avp `-clubFirst` puts the club section on top. iphone `-autoTestSwing` sends a sample once connected (+ `-autoTestClub` streams a fake club swing first). avp `-autoShot` opens range + hits, `-hideWindow` closes the panel after, `-sideView` turns the world so the sim camera sees the arc, `-clubView` face-on look at the club, `-openRange` just opens it, `-raise` lifts the world so the sim cam sees the ball in first person
 
 ## watch app (M3)
 
@@ -88,11 +93,16 @@ debug launch args (Debug builds only): iphone `-autoTestSwing` sends a sample on
 
 ## hand driven club
 
-- `HandTracking` one arkit session for the app. `predicted()` = `handAnchors(at: now + 25ms)` so the pose is for when the frame shows up, not when the cameras saw it
-- `HandClub` world space club (not under the range root). calibrates when both hands sit still at address for 0.5s: stores the club pose in the lead hand frame (offsetRot) + where the grip is vs the lead wrist. every frame after: club = lead hand rotation x offsetRot, grip = lead wrist + offset. so wrist twist = club twist w/ no watch lag
-- hybrid: if hands drop out (top of backswing, blur at impact) the last pose keeps swinging around the watch lever axis by how much the watch angle moved. hands only = no fallback, watch = old lever club
-- contact launch: when the hand clubhead crosses the ball plane heading at the target (within 15cm, >1.5 m/s, putter 8cm/0.15 m/s) the ball launches right then off head speed + face angle from the hands (provisional). the watch swing that arrives inside 1.5s refines it: same shot id, `BallFlightComponent.retarget` blends onto the new path over 0.35s. putts keep the hand speed + just take the watch tempo for the card
-- window: hand tracking toggle (on by default), club follows picker, tracking % / calibrated / contact speed readout
+- `HandTracking` one service, 2 backends, only one runs at a time:
+  - system predicted (default): realitykit `AnchorEntity(.hand(.left/.right, location: .palm), trackingMode: .predicted)`. the RENDERER moves anchored content to the hand pose predicted for display time, so our update loop adds no lag. a `SpatialTrackingSession` (`.hand`) lets us read those anchor transforms (calibration, contact, address check)
+  - manual: arkit `handAnchors(at: now + lookahead)`. its docs want the compositor services `trackableAnchorTime` (photon time) which realitykit apps dont get, so we guess (default 60ms, was 25 = under predicting = lag). optional 1€ filter. diag: arkit update hz, data age (`HandAnchor.timestamp` vs `CACurrentMediaTime`, both mach seconds), fidelity
+- `HandClub` calibrates when both palms sit still (<6mm/frame) + together (<15cm) at address for 0.5s: club pose (shaft grip -> ball, face -> target) stored in the lead palm frame. anchored: that local transform sits on a club thats a child of the lead palm anchor. manual: we place a world club from it every frame. wrist twist = club twist either way
+- hybrid: if the lead hand drops out (top of backswing, blur at impact) a world "free" club takes the last pose + swings it around the watch lever axis by how much the dead reckoned watch angle moved. when the hand comes back the free club slides onto it over 80ms then the anchored one takes over. hands only = club hides when lost, watch = old lever club
+- contact launch: when the drawn clubhead crosses the ball plane heading at the target (within 15cm, >1.5 m/s, putter 8cm/0.15 m/s) the ball launches right then off head speed + face angle (provisional). the watch swing that arrives inside 1.5s refines it: same shot id, `BallFlightComponent.retarget` blends onto the new path over 0.35s. putts keep the hand speed + just take the watch tempo for the card
+- no contact but a watch swing w/ an impact time: the ball starts `now - impact` (max 0.4s) into its flight so it lines up w/ when u actually hit it
+- the hand club ticks off a dedicated always enabled `driver` entity (disabled entities may not get system updates)
+- diag: window shows source (anchored/manual/fallback/frozen/none), calibrated, % of frames the lead hand was seen per watch phase (addr/back/down/thru, resets each address), contact speed. `SwingLogger` keeps ~8s of per frame data (source, hands seen, grip + head pos, raw vs predicted watch angle, sample age, phase) + ~1s after each swing writes the last 5s to Documents/SwingLogs (Files app + share buttons in the window), w/ the tuning settings
+- everything tunable live in the window: club follows, hand mode, manual predict ahead + smoothing, watch prediction on/off + display lead
 
 ## coaching (M6)
 

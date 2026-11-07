@@ -20,6 +20,8 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Golf Game uses bluetooth for a fast direct link to ur watch so the club follows ur swing w/ less lag.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_golfgame._tcp</string>
