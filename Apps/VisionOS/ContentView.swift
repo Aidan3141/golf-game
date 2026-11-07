@@ -35,6 +35,9 @@ struct ContentView: View {
                         Button(appModel.mode == .putt ? "Leave Green" : "Leave Range", systemImage: "xmark") {
                             Task { await dismissImmersiveSpace() }
                         }
+                        Button("Reset Ball", systemImage: "arrow.uturn.backward") {
+                            appModel.resetBall()
+                        }
                         Button(appModel.mode == .putt ? "Go to Range" : "Go to Putting Green", systemImage: "arrow.left.arrow.right") {
                             Task { await open(appModel.mode == .putt ? AppModel.rangeSpaceID : AppModel.puttSpaceID) }
                         }
@@ -191,6 +194,13 @@ struct ContentView: View {
                     Text("Club follows").font(.caption).foregroundStyle(.secondary)
                     Picker("Club follows", selection: $appModel.clubSource) {
                         ForEach(AppModel.ClubSource.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                VStack(alignment: .leading) {
+                    Text("Club rides on").font(.caption).foregroundStyle(.secondary)
+                    Picker("Club rides on", selection: $appModel.gripHands) {
+                        ForEach(AppModel.GripHands.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                     }
                     .pickerStyle(.segmented)
                 }

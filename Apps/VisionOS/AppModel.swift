@@ -11,7 +11,6 @@ struct Shot: Identifiable, Equatable {
     let tip: CoachingTip
     var provisional = false  // launched off the hand club contact, watch numbers not in yet
     var refined = false  // same shot, watch numbers swapped in mid flight
-    var startOffset = 0.0  // s into the flight to start at, = how long ago impact really was
 }
 
 struct PuttShot: Identifiable, Equatable {
@@ -95,6 +94,24 @@ final class AppModel {
     // contact launch waits this long for the watch to refine it
     static let refineWindow = 3.0  // the full watch swing comes over watchconnectivity, can take a sec or 2
     @ObservationIgnored private var contactAt: Double?
+    @ObservationIgnored private var contactImpact: Double?  // when that shot was hit (headset uptime)
+    // a ball is flying/rolling (or sitting out where it stopped). live swings that arent
+    // the shot being refined get ignored, a fast wrist flick mid flight used to bend the arc
+    @ObservationIgnored var ballBusy = false
+    var resetBallToken = 0  // bump to put the ball back right now
+
+    func resetBall() {
+        contactAt = nil  // a late watch swing cant refine/replay the old shot
+        contactImpact = nil
+        resetBallToken += 1
+    }
+    var gripHands = GripHands.both
+
+    enum GripHands: String, CaseIterable {
+        case both = "Both hands"
+        case lead = "Lead"
+        case trail = "Trail"
+    }
     @ObservationIgnored private var contactFace: Double?
 
     // tempo trainer metronome in the range
@@ -176,9 +193,11 @@ final class AppModel {
     // (lands ~0.1-0.3s later thru the phone) refines it. face angle from the hands is physical,
     // so no flip/strength calibration here
     func contact(headSpeed: Double, faceDegrees: Double) {
+        guard !ballBusy else { return }
         swingLogger.mark(String(format: "contact %.1f m/s face %+.1f", headSpeed, faceDegrees))
         let now = ProcessInfo.processInfo.systemUptime
         contactAt = now
+        contactImpact = now
         contactFace = faceDegrees
         if mode == .putt {
             let speed = min(headSpeed * 1.6, PuttTuning.standard.maxSpeed)
@@ -208,8 +227,10 @@ final class AppModel {
     func quickImpact(_ q: QuickImpact) {
         let now = ProcessInfo.processInfo.systemUptime
         if let at = contactAt, now - at < 1.0 { return }  // hand club already launched this one
+        guard !ballBusy else { return }  // ball already out there, this is a wrist flick not a shot
         swingLogger.mark(String(format: "watch impact %.0f rad/s", q.wristSpeed))
         contactAt = now
+        contactImpact = q.time
         contactFace = nil
         var swing = q.swing(handedness: handedness)
         if mode == .putt {
@@ -218,9 +239,8 @@ final class AppModel {
         }
         if let face = swing.faceAngle { swing = swing.with(pathBias: pathBias(forFace: face)) }
         let flight = FlightSimulator.simulate(swing: swing, tuning: tuning)
-        var shot = Shot(swing: swing, flight: flight, live: true,
+        let shot = Shot(swing: swing, flight: flight, live: true,
                         tip: Coach.tip(for: swing, flight: flight), provisional: true)
-        if let t = q.time { shot.startOffset = min(max(now - t, 0), 0.4) }
         lastShot = shot
         session.append(shot)
     }
@@ -233,12 +253,19 @@ final class AppModel {
 
     func hit(_ swing: SwingResult, live: Bool = false) {
         if live { swingLogger.mark(String(format: "watch swing tempo %.2f", swing.tempoRatio)) }
-        // watch swing right after a hand contact = same shot, swap the real numbers in
+        // watch swing right after a hand contact = same shot, swap the real numbers in. only if
+        // its impact lines up w/ that shot (a flick while the ball flies is a different "swing")
         if live, let at = contactAt, ProcessInfo.processInfo.systemUptime - at < Self.refineWindow {
+            let impact = network.impactTime(for: swing.id)
+            if let impact, let shotImpact = contactImpact, abs(impact - shotImpact) > 0.6 {
+                return  // not the same swing, ignore it
+            }
             contactAt = nil
+            contactImpact = nil
             refine(with: swing)
             return
         }
+        if live && ballBusy { return }  // ball still out there, not a new shot
         if mode == .putt {
             putt(swing, live: live)
             return
@@ -248,12 +275,9 @@ final class AppModel {
             swing = swing.with(pathBias: pathBias(forFace: face))
         }
         let flight = FlightSimulator.simulate(swing: swing, tuning: tuning)
-        var shot = Shot(swing: swing, flight: flight, live: live, tip: Coach.tip(for: swing, flight: flight))
-        // watch swing w/o a hand contact: impact was a bit ago (relay lag), so start the ball
-        // that far into its flight so it lines up w/ when u actually hit it
-        if live, let impact = network.impactTime(for: swing.id) {
-            shot.startOffset = min(max(ProcessInfo.processInfo.systemUptime - impact, 0), 0.4)
-        }
+        // always launches from the tee. skipping ahead into the flight to "catch up" w/ the real
+        // impact made the ball pop out mid air + the trail start in a weird spot
+        let shot = Shot(swing: swing, flight: flight, live: live, tip: Coach.tip(for: swing, flight: flight))
         lastShot = shot
         session.append(shot)
     }

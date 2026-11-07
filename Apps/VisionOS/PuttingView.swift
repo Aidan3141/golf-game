@@ -67,6 +67,12 @@ struct PuttingView: View {
             if appModel.addressCheckOn { appModel.startHandTracking() }
         }
         .onDisappear { appModel.stopHandTracking() }
+        .onChange(of: appModel.resetBallToken) { _, _ in
+            scene?.resetBall()
+            playedID = nil
+            appModel.ballBusy = false
+        }
+        .onDisappear { appModel.ballBusy = false }
         .onChange(of: appModel.puttSetup) { _, setup in
             Task { await scene?.layout(setup, hand: appModel.handedness) }
         }
@@ -85,17 +91,17 @@ struct PuttingView: View {
             appModel.puttCard = nil
             scene.resetBall()
             scene.ball.components.set(PuttRollComponent(p.result))
+            appModel.ballBusy = true
             Task {
                 try? await Task.sleep(for: .seconds(p.result.duration + 0.3))
                 guard let latest = appModel.lastPutt, latest.id == p.id else { return }
                 appModel.puttCard = latest
-                if p.result.holed {
-                    appModel.holed()
-                } else {
-                    // putt it from where it stopped? keep it simple, back to the start
-                    try? await Task.sleep(for: .seconds(1.5))
-                    if appModel.lastPutt?.id == p.id { scene.resetBall() }
-                }
+                if p.result.holed { appModel.holed() }
+                // back to the start soon after it stops (a beat longer if it dropped, to enjoy it)
+                try? await Task.sleep(for: .seconds(p.result.holed ? 1.0 : 0.5))
+                guard appModel.lastPutt?.id == p.id else { return }
+                scene.resetBall()
+                appModel.ballBusy = false
             }
         }
     }

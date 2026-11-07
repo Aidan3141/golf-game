@@ -81,6 +81,7 @@ struct RangeView: View {
         .onChange(of: appModel.tempoTrainerOn) { _, _ in updateTrainer() }
         .onChange(of: appModel.trainerBackswing) { _, _ in updateTrainer() }
         .onDisappear {
+            appModel.ballBusy = false
             scene?.trainer.stop()
             appModel.stopHandTracking()
         }
@@ -99,6 +100,12 @@ struct RangeView: View {
             handClub?.reset()
         }
         .onChange(of: appModel.viewMode) { _, _ in handClub?.reset() }
+        .onChange(of: appModel.resetBallToken) { _, _ in
+            guard let scene else { return }
+            scene.resetBall()
+            playedShotID = nil
+            appModel.ballBusy = false
+        }
         .onChange(of: appModel.lastShot) { _, shot in
             guard let shot, let scene else { return }
             play(shot, in: scene)
@@ -178,10 +185,9 @@ struct RangeView: View {
         }
         // hand club contact, or live swing w/ the club streaming -> u already swung it, just launch
         if shot.provisional || (shot.live && appModel.liveClub.isFresh) || handClub?.isActive == true {
-            var f = BallFlightComponent(flight: shot.flight, effects: scene.effects)
-            f.elapsed = Float(shot.startOffset)
-            scene.ball.components.set(f)
-            showCard(for: shot, after: max(landing - shot.startOffset, 0.1))
+            scene.ball.components.set(BallFlightComponent(flight: shot.flight, effects: scene.effects))
+            showCard(for: shot, after: landing)
+            resetWhenDone(shot, in: scene)
             return
         }
         // otherwise club swings first, ClubSwingSystem launches the ball at impact
@@ -189,5 +195,22 @@ struct RangeView: View {
         let swing = ClubSwingComponent(shot: shot, ball: scene.ball, effects: scene.effects, rig: scene.club)
         scene.club.root.components.set(swing)
         showCard(for: shot, after: Double(max(swing.impactTime - swing.elapsed, 0)) + landing)
+        resetWhenDone(shot, in: scene)
+    }
+
+    // ball back on the tee ~1s after it stops (it used to sit out where it landed till the next
+    // swing, so there was no ball at ur feet + the club couldnt hit anything)
+    private func resetWhenDone(_ shot: Shot, in scene: RangeScene) {
+        appModel.ballBusy = true
+        Task {
+            try? await Task.sleep(for: .seconds(0.5))
+            while scene.ball.components.has(BallFlightComponent.self) || scene.club.root.components.has(ClubSwingComponent.self) {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            try? await Task.sleep(for: .seconds(1.0))
+            guard playedShotID == shot.id else { return }
+            scene.resetBall()
+            appModel.ballBusy = false
+        }
     }
 }
