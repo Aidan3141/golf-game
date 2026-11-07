@@ -23,6 +23,8 @@ final class Golfer {
     private var lastRight: [String: SIMD3<Float>]?
     private var lastClub: (SIMD3<Float>, SIMD3<Float>)?
     let righty: Bool
+    var hideHands = false
+    var hideClub = false
     var hideHead = false  // camera is in it (pov): only hands (fingers), club + watch show, like the headset
 
     static let fingerChains: [[String]] = ["thumb", "indexFinger", "middleFinger", "ringFinger", "littleFinger"].map { f in
@@ -275,11 +277,20 @@ final class Golfer {
             watch.isHidden = true
         }
 
+        // pov follow thru: club swings across ur face, drop it too
+        if hideClub {
+            clubShaft.isHidden = true
+            clubHead.isHidden = true
+        }
         shadow.simdPosition = st.feet + [0, 0.012, 0] + 0.1 * st.fwd
         shadow.isHidden = hideHead
         if hideHead {
             for (name, n) in bones where !name.hasPrefix("lf") && !name.hasPrefix("rf") { n.isHidden = true }
-            for (name, n) in joints where name != "lWrist" && name != "rWrist" { n.isHidden = true }
+            for (name, n) in joints where name != "lWrist" && name != "rWrist" || hideHands { n.isHidden = true }
+            if hideHands {
+                for n in bones.values { n.isHidden = true }
+                watch.isHidden = true
+            }
         }
     }
 

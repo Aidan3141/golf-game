@@ -288,6 +288,9 @@ for seg in segments {
         let pose = rec.pose(at: s)
         let pulseT = s - L
         golfer.hideHead = seg.name == "pov"
+        // pov: hands drop out of view once the swing starts (they swung thru the camera)
+        golfer.hideHands = seg.name == "pov" && s > L - rec.shot.backswing - rec.shot.downswing
+        golfer.hideClub = seg.name == "pov" && s > L + 0.12
         golfer.update(pose, impactPulse: pulseT >= 0 && pulseT < 0.35 ? Float(pulseT / 0.35) : 0)
         // ball
         let bp: SIMD3<Float> = s < L ? (pose.ball ?? teeW) : (ballPath.last(where: { $0.t <= s - L })?.p ?? teeW)
@@ -299,8 +302,7 @@ for seg in segments {
             camera(for: seg, x: x, s: s - L)
         }
         ballNode.simdPosition = bp
-        let bd = simd_distance(camNode.simdPosition, bp)
-        ballNode.simdScale = SIMD3(repeating: max(1, bd * 0.006 / 0.0214))
+        ballNode.simdScale = .one  // real size the whole way, no growing w/ distance
         updateTracer(upTo: s - L, camPos: camNode.simdPosition)
         carrySign.isHidden = s - L < landing.t
         totalSign.isHidden = s - L < rest.t - 0.2 || seg.name != "side" && seg.name != "flight"
