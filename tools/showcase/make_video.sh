@@ -1,6 +1,6 @@
 #!/bin/zsh
-# whole showcase from one recorded shot: title -> headset pov -> 3rd person -> impact slo mo
-# -> flight -> the shot -> end card, w/ music + game sounds
+# whole showcase from one recorded shot: headset pov -> 3rd person -> impact slo mo
+# -> flight -> the shot, w/ music + game sounds. no title/end cards (--card still works if u want them)
 # usage: tools/showcase/make_video.sh shot.json out_dir
 set -e
 here=${0:A:h}
@@ -12,15 +12,9 @@ cd $here
 swift build -c release 2>&1 | grep -E 'error|Build comp' || true
 bin=$here/.build/release/ShowcaseRender
 res=$repo/Apps/VisionOS/Resources
-title=3
-endsecs=3.5
+title=0
 
-$bin --rec $rec --assets $res --card title --seconds $title --out $out/title.mp4 > /dev/null
-$bin --rec $rec --assets $res --out $out/main.mp4 --cues $out/cues.json | tail -1
-$bin --rec $rec --assets $res --card end --seconds $endsecs --out $out/end.mp4 > /dev/null
-
-printf "file '%s'\nfile '%s'\nfile '%s'\n" $out/title.mp4 $out/main.mp4 $out/end.mp4 > $out/list.txt
-ffmpeg -loglevel error -y -f concat -safe 0 -i $out/list.txt -c copy $out/video.mp4
+$bin --rec $rec --assets $res --out $out/video.mp4 --cues $out/cues.json | tail -1
 total=$(ffprobe -v error -show_entries format=duration -of csv=p=0 $out/video.mp4)
 python3 -I $here/make_audio.py $out/cues.json $total $title $res/Sounds $out/audio_raw.wav
 ffmpeg -loglevel error -y -i $out/audio_raw.wav -af loudnorm=I=-16:TP=-1.5:LRA=11 -ar 48000 $out/audio.wav
