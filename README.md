@@ -1,41 +1,21 @@
-# golf sim testing
+# Golf sim testing
 
-golf sim for vision pro. apple watch on ur wrist reads the swing, headset tracks ur hands + puts a club in them, ball flies off real physics
+A very (nonpolished) challenge i gave myself, after getting more into golf :D
 
-## what u see in the headset
+The idea with this was to find a way to simulate a swing when hand tracking couldn't track my movement quickly enough, I found if I connected my apple watch via my iPhone, it could track hand posiitoning/rotation/speed a lot more effectively, without having to buy 3rd party controllers!
+
+## What you'll see in the headset
 
 ![pov](docs/media/pov.gif)
 
-hand tracking locks a club to ur grip when u hold still at address. swing it, club hits the ball, ball goes right then
+Hand tracking will lock a club to your grip, as you swing, if the club hits the ball, physics engine will calculate where ball will go based off hit.
 
-## same swing from outside
+## Same swing from outside
 
 ![swing](docs/media/swing.gif)
 
-apple watch on lead wrist does motion 100x a sec, works out backswing + downswing time (tempo), wrist speed, how smooth, face angle. goes watch -> iphone (bluetooth, watchconnectivity backup) -> vision pro over wifi
+Apple watch does motion 100x a second, tracks things like backswing/downswing time, wrist speed, face angle, etc. This works by connecting the watch to iPhone using bluetooth and watchConnectivity, and then iPhone will connect to vision pro over wifi.
 
-## impact
 
-![impact](docs/media/impact.gif)
 
-ball launches off hand speed + face angle from the hands the second u hit it, then the watch numbers come in a bit later + bend it onto the real path mid air
-
-## ball flight
-
-![flight](docs/media/flight.gif)
-
-physics in SwingKit: wrist speed -> ball speed, face/path -> curve, drag + lift, then bounce + roll
-
-## the shot
-
-![shot](docs/media/shot.gif)
-
-carry, total, apex, curve, tempo + a tip on the card. theres a putting green too
-
-## stuff in here
-
-- `Apps/VisionOS` headset app (range, putting, hand club)
-- `Apps/Watch` swing sensor
-- `Apps/iOS` relay + history
-- `Packages/SwingKit` swing detection, flight + putt physics, shared msgs
-- `tools/showcase` mac thing that rendered the gifs above
+Was a lot of fun to make this! Not very polished but feel free to try it yourself :D
