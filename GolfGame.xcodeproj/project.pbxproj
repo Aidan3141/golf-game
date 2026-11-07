@@ -14,6 +14,7 @@
 		14C41B2579A23B2427F71B45 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9C6C7915F88CB3B91DCB69 /* HistoryView.swift */; };
 		19A055685C9F5B9C2A068F5D /* sky_2k.hdr in Resources */ = {isa = PBXBuildFile; fileRef = AEB0ADF0B9CABA3F3657A93F /* sky_2k.hdr */; };
 		1A0AA9DA830B235CD8637A16 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D651FAC98A7B599BF438465E /* ContentView.swift */; };
+		1DF0849AE34493438220F339 /* SwingLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18193F50C9FD7B5CD1C82554 /* SwingLogger.swift */; };
 		1F9FC25B9B0668A884F3DF15 /* SwingKit in Frameworks */ = {isa = PBXBuildFile; productRef = 773D70B0D6CFA15F475B0BEC /* SwingKit */; };
 		26DA5D955590E82DFF10B0C1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3399F17955A487373B2E275B /* ContentView.swift */; };
 		294A9AA60B24E27E8986D60A /* SwingSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E1A303088E125FD2A7FE63 /* SwingSource.swift */; };
@@ -85,6 +86,7 @@
 		058F9DD72DAC2CA3A0AFE854 /* grass_nor.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = grass_nor.jpg; sourceTree = "<group>"; };
 		13CEE87EB5BEA1FEB10D8093 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		16352944458CA419F59D1ADB /* RangeScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RangeScene.swift; sourceTree = "<group>"; };
+		18193F50C9FD7B5CD1C82554 /* SwingLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingLogger.swift; sourceTree = "<group>"; };
 		196209FD2DFF8E6D0CC6C427 /* LiveClub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveClub.swift; sourceTree = "<group>"; };
 		1D26D9A5B9D754500D1DA2FE /* land.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = land.wav; sourceTree = "<group>"; };
 		1D950B8157E16302AD84F329 /* SwingKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SwingKit; path = Packages/SwingKit; sourceTree = SOURCE_ROOT; };
@@ -285,6 +287,7 @@
 				16352944458CA419F59D1ADB /* RangeScene.swift */,
 				9D56BF70B404880C37CB9CE3 /* RangeView.swift */,
 				9A61349A56FBBC5925664F9C /* ShotCard.swift */,
+				18193F50C9FD7B5CD1C82554 /* SwingLogger.swift */,
 				80E1A303088E125FD2A7FE63 /* SwingSource.swift */,
 				A8329AB5DD72E1794D97E187 /* TestSwingSettings.swift */,
 				57FA77E58726C012E8E82641 /* Resources */,
@@ -473,6 +476,7 @@
 				0809D0CA4E1B4540D69A5DC9 /* RangeView.swift in Sources */,
 				320BD74257F94EB91D503E71 /* ShotCard.swift in Sources */,
 				047420C39294A25419DF1F70 /* SwingLink.swift in Sources */,
+				1DF0849AE34493438220F339 /* SwingLogger.swift in Sources */,
 				294A9AA60B24E27E8986D60A /* SwingSource.swift in Sources */,
 				E71A9042DAB8ACBE811A6984 /* TestSwingSettings.swift in Sources */,
 			);

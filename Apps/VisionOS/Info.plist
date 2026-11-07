@@ -20,12 +20,14 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_golfgame._tcp</string>
 	</array>
 	<key>NSHandsTrackingUsageDescription</key>
-	<string>Golf Game checks ur hands are together + in front of u at address. it never tracks the fast swing.</string>
+	<string>Golf Game puts the golf club in ur hands + checks ur grip at address.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Golf Game connects your iPhone and Vision Pro so your watch swings show up in the headset.</string>
 	<key>UIApplicationSceneManifest</key>
@@ -37,5 +39,7 @@
 		<key>UISceneConfigurations</key>
 		<dict/>
 	</dict>
+	<key>UIFileSharingEnabled</key>
+	<true/>
 </dict>
 </plist>

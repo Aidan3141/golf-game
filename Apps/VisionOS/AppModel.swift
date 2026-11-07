@@ -11,6 +11,7 @@ struct Shot: Identifiable, Equatable {
     let tip: CoachingTip
     var provisional = false  // launched off the hand club contact, watch numbers not in yet
     var refined = false  // same shot, watch numbers swapped in mid flight
+    var startOffset = 0.0  // s into the flight to start at, = how long ago impact really was
 }
 
 struct PuttShot: Identifiable, Equatable {
@@ -73,6 +74,23 @@ final class AppModel {
     var clubSource = ClubSource.hybrid
     var handStats = "—"
 
+    // club tuning, all live from the window
+    var handBackend = HandTracking.Backend.anchored
+    var manualLookaheadMs = 60.0 {
+        didSet { handTracking.lookahead = manualLookaheadMs / 1000 }
+    }
+    var handSmoothing = 0.0  // manual mode 1€ filter, 0 = off
+    var watchExtrapolate = true {
+        didSet { liveClub.extrapolate = watchExtrapolate }
+    }
+    var watchDisplayLeadMs = 35.0 {
+        didSet { liveClub.displayLead = watchDisplayLeadMs / 1000 }
+    }
+
+    // per swing frame logs for debugging the club, shareable from the window
+    let swingLogger = SwingLogger()
+    var lastSwingLog: URL?
+
     // contact launch waits this long for the watch to refine it
     static let refineWindow = 1.5
     @ObservationIgnored private var contactAt: Double?
@@ -109,6 +127,10 @@ final class AppModel {
             liveClub.update(sample)
         }
         network.start()
+        liveClub.extrapolate = watchExtrapolate
+        liveClub.displayLead = watchDisplayLeadMs / 1000
+        swingLogger.settings = { [weak self] in self?.tuningSnapshot ?? [:] }
+        swingLogger.onWrite = { [weak self] url in self?.lastSwingLog = url }
     }
 
     func listen(to source: some SwingSource, live: Bool) {
@@ -121,7 +143,8 @@ final class AppModel {
     }
 
     func startHandTracking() {
-        handTracking.start()
+        handTracking.lookahead = manualLookaheadMs / 1000
+        handTracking.start(handBackend)
         addressCheck.set(handTracking.state == .unsupported ? .unsupported : .noHands)
     }
 
@@ -130,10 +153,26 @@ final class AppModel {
         addressCheck.set(.off)
     }
 
+    // what the club was set to, saved w/ every swing log
+    var tuningSnapshot: [String: String] {
+        [
+            "clubSource": clubSource.rawValue,
+            "handBackend": handBackend.rawValue,
+            "manualLookaheadMs": String(format: "%.0f", manualLookaheadMs),
+            "handSmoothing": String(format: "%.2f", handSmoothing),
+            "watchExtrapolate": "\(watchExtrapolate)",
+            "watchDisplayLeadMs": String(format: "%.0f", watchDisplayLeadMs),
+            "mode": mode.rawValue,
+            "hand": handedness.rawValue,
+            "liveClub": network.clubStats,
+        ]
+    }
+
     // the hand club hit the ball. launch right now off what the hands say, the watch swing
     // (lands ~0.1-0.3s later thru the phone) refines it. face angle from the hands is physical,
     // so no flip/strength calibration here
     func contact(headSpeed: Double, faceDegrees: Double) {
+        swingLogger.mark(String(format: "contact %.1f m/s face %+.1f", headSpeed, faceDegrees))
         let now = ProcessInfo.processInfo.systemUptime
         contactAt = now
         contactFace = faceDegrees
@@ -167,6 +206,7 @@ final class AppModel {
     }
 
     func hit(_ swing: SwingResult, live: Bool = false) {
+        if live { swingLogger.mark(String(format: "watch swing tempo %.2f", swing.tempoRatio)) }
         // watch swing right after a hand contact = same shot, swap the real numbers in
         if live, let at = contactAt, ProcessInfo.processInfo.systemUptime - at < Self.refineWindow {
             contactAt = nil
@@ -182,7 +222,12 @@ final class AppModel {
             swing = swing.with(pathBias: pathBias(forFace: face))
         }
         let flight = FlightSimulator.simulate(swing: swing, tuning: tuning)
-        let shot = Shot(swing: swing, flight: flight, live: live, tip: Coach.tip(for: swing, flight: flight))
+        var shot = Shot(swing: swing, flight: flight, live: live, tip: Coach.tip(for: swing, flight: flight))
+        // watch swing w/o a hand contact: impact was a bit ago (relay lag), so start the ball
+        // that far into its flight so it lines up w/ when u actually hit it
+        if live, let impact = network.impactTime(for: swing.id) {
+            shot.startOffset = min(max(ProcessInfo.processInfo.systemUptime - impact, 0), 0.4)
+        }
         lastShot = shot
         session.append(shot)
     }

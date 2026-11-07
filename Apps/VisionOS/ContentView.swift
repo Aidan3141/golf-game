@@ -12,6 +12,10 @@ struct ContentView: View {
         @Bindable var appModel = appModel
         NavigationStack {
             Form {
+                #if DEBUG
+                // `-clubFirst`: club section on top, so sim screenshots can see it
+                if ProcessInfo.processInfo.arguments.contains("-clubFirst") { clubSection }
+                #endif
                 Section("connection") {
                     LabeledContent("iPhone", value: appModel.network.state.label)
                     if let ms = appModel.network.lastLatency {
@@ -62,25 +66,11 @@ struct ContentView: View {
                     .pickerStyle(.segmented)
                     Toggle("Flip left/right", isOn: $appModel.flipCurve)
                     SliderRow("Curve strength", value: $appModel.curveStrength, in: 0...2, format: "%.1fx")
-                    if appModel.network.clubUpdates > 0 {
-                        LabeledContent("Live club", value: appModel.network.clubStats)
-                    }
                 }
 
+                clubSection
+
                 Section {
-                    Toggle("Hand tracking", isOn: $appModel.addressCheckOn)
-                    if appModel.addressCheckOn {
-                        Picker("Club follows", selection: $appModel.clubSource) {
-                            ForEach(AppModel.ClubSource.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-                        }
-                        .pickerStyle(.segmented)
-                        LabeledContent("Address", value: appModel.mode == .full && appModel.rangeState != .open ? "open a space" : appModel.addressCheck.status.label)
-                        LabeledContent("Tracking", value: appModel.handStats)
-                            .font(.footnote)
-                        Text("hold still at address w/ both hands on the grip for a sec to lock the club to ur hands")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
                     Toggle("Tempo trainer", isOn: $appModel.tempoTrainerOn)
                     if appModel.tempoTrainerOn {
                         SliderRow("Backswing", value: $appModel.trainerBackswing, in: 0.6...1.4, format: "%.2f s")
@@ -188,6 +178,59 @@ struct ContentView: View {
             }
         }
         #endif
+    }
+
+    // everything about how the club follows u, all live so u can tune it in the headset
+    @ViewBuilder
+    private var clubSection: some View {
+        @Bindable var appModel = appModel
+        Section {
+            Toggle("Hand tracking", isOn: $appModel.addressCheckOn)
+            if appModel.addressCheckOn {
+                VStack(alignment: .leading) {
+                    Text("Club follows").font(.caption).foregroundStyle(.secondary)
+                    Picker("Club follows", selection: $appModel.clubSource) {
+                        ForEach(AppModel.ClubSource.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                VStack(alignment: .leading) {
+                    Text("Hand mode").font(.caption).foregroundStyle(.secondary)
+                    Picker("Hand mode", selection: $appModel.handBackend) {
+                        ForEach(HandTracking.Backend.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                if appModel.handBackend == .manual {
+                    SliderRow("Predict ahead", value: $appModel.manualLookaheadMs, in: 0...150, format: "%.0f ms")
+                    SliderRow("Smoothing", value: $appModel.handSmoothing, in: 0...1, format: "%.2f")
+                }
+                LabeledContent("Address", value: appModel.rangeState != .open && appModel.puttState != .open ? "open a space" : appModel.addressCheck.status.label)
+                Text(appModel.handStats)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                Text("hold still at address w/ both hands on the grip for a sec to lock the club to ur hands")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Toggle("Predict watch club", isOn: $appModel.watchExtrapolate)
+            if appModel.watchExtrapolate {
+                SliderRow("Display lead", value: $appModel.watchDisplayLeadMs, in: 0...120, format: "%.0f ms")
+            }
+            LabeledContent("Live club", value: appModel.network.clubStats)
+                .font(.footnote)
+            if let log = appModel.lastSwingLog {
+                ShareLink("Share Last Swing Log", item: log)
+            }
+            let logs = SwingLogger.all()
+            if logs.count > 1 {
+                ShareLink("Share All Swing Logs (\(logs.count))", items: logs)
+            }
+        } header: {
+            Text("club")
+        } footer: {
+            Text("system predicted = the renderer pins the club to ur palm (least lag). manual = old way, for comparing. hybrid = watch takes over when ur hands leave view")
+        }
     }
 
     private func hit(_ settings: TestSwingSettings) async {

@@ -29,8 +29,12 @@ struct PuttingView: View {
             hc.rig = s.club
             hc.appModel = appModel
             hc.minContactSpeed = 0.15  // putts are slow
-            hc.root.components.set(HandClubComponent(ref: HandClubRef(club: hc)))
-            content.add(hc.root)
+            hc.driver.components.set(HandClubComponent(ref: HandClubRef(club: hc)))
+            content.add(hc.driver)
+            content.add(hc.freeRoot)
+            // palm anchors go straight in the content, the renderer tracks them
+            content.add(hc.leftAnchor)
+            content.add(hc.rightAnchor)
             handClub = hc
             if let card = attachments.entity(for: "card") {
                 card.name = "card"
@@ -57,6 +61,10 @@ struct PuttingView: View {
         }
         .onChange(of: appModel.addressCheckOn, initial: true) { _, on in
             if on { appModel.startHandTracking() } else { appModel.stopHandTracking() }
+        }
+        .onChange(of: appModel.handBackend) { _, _ in
+            handClub?.reset()
+            if appModel.addressCheckOn { appModel.startHandTracking() }
         }
         .onDisappear { appModel.stopHandTracking() }
         .onChange(of: appModel.puttSetup) { _, setup in
